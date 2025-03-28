@@ -1166,7 +1166,7 @@ Handlers.add(
        -- Check if at least one banner is provided
     if #bannerUrls == 0 then
         local response = { code = 404, message = "failed", data = "At least one BannerUrl is required." }
-        ao.send({ Target = m.From, Data = tableToJson(response) })
+        ao.send({ Target = m.From, Data = TableToJson(response) })
         return
     end
 
@@ -1239,8 +1239,8 @@ Handlers.add(
 
         -- Filter apps owned by the user from the nested 'apps' table
         local filteredApps = {}
-        for AppId, App in pairs(Apps.apps) do
-            if App.owner == owner then
+        for AppId, app in pairs(Apps.apps) do
+            if app.owner == owner then
                 filteredApps[AppId] = {
                 appId = app.appId,
                 appName = app.appName,
@@ -1311,6 +1311,7 @@ Handlers.add(
             Apps.app[appId][updateOption] = ""
         end
 
+        
         -- Perform the update
         Apps[appId][updateOption] = newValue
         local transactionType = "Updated.".. updateOption
@@ -1419,7 +1420,7 @@ Handlers.add(
        -- Check if at least one banner is provided
     if #bannerUrls == 0 then
         local response = { code = 404, message = "failed", data = "At least one BannerUrl is required." }
-        ao.send({ Target = m.From, Data = tableToJson(response) })
+        ao.send({ Target = m.From, Data = TableToJson(response) })
         return
     end
 

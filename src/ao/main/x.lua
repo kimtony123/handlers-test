@@ -4,8 +4,8 @@ Handlers.add(
   "AddProjectZ",
   Handlers.utils.hasMatchingTag("Action", "AddProjectZ"),
   function(m)
-      local currentTime = getCurrentTime(m)
-      local AppId = generateAppId()
+      local currentTime = GetCurrentTime(m)
+      local AppId = GenerateAppId()
       local user = m.From
       local appName = "aostore testX"
       local description = "This is a test App"
@@ -29,7 +29,7 @@ Handlers.add(
     "AddHelpfulRating",
     Handlers.utils.hasMatchingTag("Action", "AddHelpfulRating"),
     function(m)
-      local AppId = generateAppId()
+      local AppId = GenerateAppId()
       local user = m.From
       AddHelpfulTable(AppId, user, nil)
     end
@@ -39,7 +39,7 @@ Handlers.add(
     "AddUnHelpfulRating",
     Handlers.utils.hasMatchingTag("Action", "AddUnHelpfulRating"),
     function(m)
-      local AppId = generateAppId()
+      local AppId = GenerateAppId()
       local user = m.From
       --AddUnHelpfulTable(AppId, user, nil)
     end
@@ -49,7 +49,7 @@ Handlers.add(
     "AddAidropTable",
     Handlers.utils.hasMatchingTag("Action", "AddAidropTable"),
     function(m)
-      local AppId = generateAppId()
+      local AppId = GenerateAppId()
       local user = m.From
       local AppName = "aostore"
       AddAirdropTable(AppId, user,AppName,  nil)
@@ -60,7 +60,7 @@ Handlers.add(
     "AddFlagTableX",
     Handlers.utils.hasMatchingTag("Action", "AddFlagTableX"),
     function(m)
-      local AppId = generateAppId()
+      local AppId = GenerateAppId()
       local user = m.From
       AddFlagTable(AppId, user, nil)
     end
@@ -71,7 +71,7 @@ Handlers.add(
     "AddBugReportX",
     Handlers.utils.hasMatchingTag("Action", "AddBugReportX"),
     function(m)
-      local AppId = generateAppId()
+      local AppId = GenerateAppId()
       local user = m.From
       local username = m.Tags.username
       local profileUrl = m.Tags.profileUrl
@@ -83,7 +83,7 @@ Handlers.add(
     "AddDevTable",
     Handlers.utils.hasMatchingTag("Action", "AddDevTable"),
     function(m)
-      local AppId = generateAppId()
+      local AppId = GenerateAppId()
       local user = m.From
       local username = m.Tags.username
       local profileUrl = m.Tags.profileUrl
@@ -95,7 +95,7 @@ Handlers.add(
     "AddFeatureRequestTable",
     Handlers.utils.hasMatchingTag("Action", "AddFeatureRequestTable"),
     function(m)
-      local AppId = generateAppId()
+      local AppId = GenerateAppId()
       local user = m.From
       local username = m.Tags.username
       local profileUrl = m.Tags.profileUrl

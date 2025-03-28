@@ -96,7 +96,7 @@ Handlers.add(
     "AddHelpfulTableX",
     Handlers.utils.hasMatchingTag("Action", "AddHelpfulTableX"),
     function(m)
-        local currentTime = getCurrentTime(m)
+        local currentTime = GetCurrentTime(m)
         local appId = m.Tags.appId
         local user = m.From
         local caller = m.From

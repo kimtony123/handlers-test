@@ -1,0 +1,16 @@
+{
+  "Lua.diagnostics.globals": [
+    "ao",
+    "Handlers",
+    "Send",
+    "Colors",
+    "finalizeProject",
+    "globalFinalizeProjectCallback",
+    "SentBoxTable",
+    "InboxTable",
+    "TicketSentBoxTable",
+    "AppTicketInboxTable",
+    "GetOrInitializeUserPoints",
+    "Inbox"
+  ]
+}
