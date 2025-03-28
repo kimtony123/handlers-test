@@ -70,20 +70,27 @@ const addaoprojects = () => {
     }
   }
 
-  const AIRDROP = "xs_gSLAAdqPYPRhHrNmdyktmgiJBExWycxNahLKaPy4";
+  const AIRDROP = "2aXLWDFCbnxxBb2OyLmLlQHwPnrpN8dDZtB9Y9aEdOE";
 
   // In addproject function, use these values directly
   const addProjectB = async () => {
     setIsAddProjectB(true);
     const appId = "TX1";
+    const messageX = "Welcome to aostore.";
+    const title = "Welcoming message.";
+    const link = "https://aostore-orpin.vercel.app/";
+
     try {
       const getTradeMessage = await message({
         process: AIRDROP,
         tags: [
-          { name: "Action", value: "FetchDevForumData" },
+          { name: "Action", value: "SendNotificationToInbox" },
           { name: "appId", value: String(appId) },
+          { name: "message", value: String(messageX) },
+          { name: "title", value: String(title) },
+          { name: "link", value: String(link) },
         ],
-        signer: createDataItemSigner(othent),
+        signer: createDataItemSigner(window.arweaveWallet),
       });
       const { Messages, Error } = await result({
         message: getTradeMessage,
@@ -297,7 +304,7 @@ const addaoprojects = () => {
                 loading={isaddprojectB}
                 onClick={() => addProjectB()} // Open the Confirm popup
               >
-                FetchDevForumData.
+                SendMessage.
               </Button>
             </GridRow>
             <GridRow>

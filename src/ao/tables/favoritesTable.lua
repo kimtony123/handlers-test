@@ -30,6 +30,7 @@ FavoritesCounter = FavoritesCounter or 0
 TicketCounter = TicketCounter or 0
 TicketMessageCounter = TicketMessageCounter or 0
 TicketMessageReplyCounter = TicketMessageReplyCounter or 0
+MessageCounter = MessageCounter or 0
 
 -- Function to get the current time in milliseconds
 function GetCurrentTime(msg)
@@ -139,20 +140,20 @@ end
 -- Function to generate a unique transaction ID
 function GenerateFavoritesId()
     FavoritesCounter = FavoritesCounter + 1
-    return "TX" .. tostring(FavoritesCounter)
+    return "FX" .. tostring(FavoritesCounter)
 end
 
 -- Function to generate a unique App ID
 function GenerateMessageId()
     MessageCounter = MessageCounter + 1
-    return "TX" .. tostring(MessageCounter)
+    return "MX" .. tostring(MessageCounter)
 end
 
 
 function DetermineUserRank(user, appId, providedRank)
     
     -- Get app data with safety checks
-    local appData = TaskTable[appId] or {}
+    local appData = FavoritesTable[appId] or {}
     local owner = appData.owner
     local mods = appData.mods or {}
 
@@ -424,33 +425,40 @@ Handlers.add(
     function(m)
         local appId = m.Tags.appId
         local message = m.Tags.message
-        local header = m.Tags.header
-        local linkInfo = m.Tags.linkInfo
-        local sender = m.From
+        local title = m.Tags.title
+        local link = m.Tags.link
+        local user = m.From
         local currentTime = GetCurrentTime(m) -- Ensure you have a function to get the current timestamp
         local messageId = GenerateMessageId()
 
         if not ValidateField(appId, "appId", m.From) then return end
         if not ValidateField(message, "message", m.From) then return end
-        if not ValidateField(header, "header", m.From) then return end
-        if not ValidateField(linkInfo, "linkInfo", m.From) then return end
+        if not ValidateField(title, "title", m.From) then return end
+        if not ValidateField(link, "linkInfo", m.From) then return end
 
 
         -- Verify that the app exists
         local appDetails = FavoritesTable[appId]
+
         if appDetails == nil then
             SendFailure(m.From , "App not Found.")
          return
         end
 
-        -- Verify that the sender is the owner of the app
-        if appDetails.owner ~= sender then
+        -- Verify that the user is the owner of the app
+        if not  appDetails.owner ~= user then
             SendFailure(m.From , "You are not the Owner of this App.")
          return
         end
 
+        -- Check if the user is the app owner
+        if not  FavoritesTable[appId].owner ~= user  then
+            SendFailure(m.From, "Only the app owner can send messages.")
+        end
+
         -- Check if the app has any favorites
         local favorites = FavoritesTable[appId]
+        
         if favorites.users == nil then
             SendFailure(m.From , "No users have added your Projects to favorites.")
            return
@@ -469,19 +477,19 @@ Handlers.add(
                 end
             end
 
-            local function initializeSenderOutbox(sender)
+            local function initializeuserOutbox(user)
                 -- Initialize the user's inbox only if it doesn't exist
-                if SentBoxTable[sender] == nil then
-                    SentBoxTable[sender] = {
+                if SentBoxTable[user] == nil then
+                    SentBoxTable[user] = {
                         messages = {}, -- Messages stored as { [MessageId] = messageData }
                         SentMessages = 0 -- Counter for unread messages
                     }
                 end
-                SentBoxTable[sender] = SentBoxTable[sender] or {}
+                SentBoxTable[user] = SentBoxTable[user] or {}
             end
 
             initializeUserInbox(userId)
-            initializeSenderOutbox(sender)
+            initializeuserOutbox(user)
             
             InboxTable[userId].messages[messageId][#InboxTable[userId].messages[messageId] + 1] =
             {
@@ -491,8 +499,8 @@ Handlers.add(
                 appName = appDetails.appName,
                 appIconUrl = appDetails.appIconUrl,
                 message = message,
-                header = header,
-                linkInfo = linkInfo,
+                title = title,
+                link = link,
                 currentTime = currentTime
             }
 
@@ -500,7 +508,7 @@ Handlers.add(
 
             UnreadMessages = UnreadMessages + 1
 
-            SentBoxTable[sender].messages[messageId][#SentBoxTable[sender].messages[messageId] + 1] =
+            SentBoxTable[user].messages[messageId][#SentBoxTable[user].messages[messageId] + 1] =
             {
                 appId = appId,
                 messageId = messageId,
@@ -508,11 +516,11 @@ Handlers.add(
                 appName = appDetails.appName,
                 appIconUrl = appDetails.appIconUrl,
                 message = message,
-                header = header,
-                linkInfo = linkInfo,
+                title = title,
+                link = link,
                 currentTime = currentTime
             }
-            local SentMessages = SentBoxTable[sender].SentMessages
+            local SentMessages = SentBoxTable[user].SentMessages
             SentMessages =  SentMessages + 1 
         end
 
@@ -530,9 +538,9 @@ Handlers.add(
     function(m)
         local appId = m.Tags.AppId
         local message = m.Tags.Message
-        local Header = m.Tags.Header
+        local title = m.Tags.title
         local LinkInfo = m.Tags.LinkInfo
-        local sender = m.From
+        local user = m.From
         local ticketId = GenerateTicketId()
         local currentTime = GetCurrentTime(m) -- Ensure you have a function to get the current timestamp
         local MessageId = GenerateMessageId()
@@ -557,11 +565,11 @@ Handlers.add(
             return
         end
 
-        if Header == nil then
+        if title == nil then
             local response = {}
             response.code = 404
             response.message = "failed"
-            response.data = "Header is missing or empty."
+            response.data = "title is missing or empty."
             ao.send({ Target = m.From, Data = TableToJson(response) })
             return
         end
@@ -598,10 +606,10 @@ Handlers.add(
             end
         end
         
-        local function initializeUserSenderOutbox(sender)
+        local function initializeUseruserOutbox(user)
                 -- Initialize the user's inbox only if it doesn't exist
-                if TicketSentBoxTable[sender] == nil then
-                TicketSentBoxTable[sender] = {
+                if TicketSentBoxTable[user] == nil then
+                TicketSentBoxTable[user] = {
                     messages = {
                         message = {}, 
                     },         -- Messages stored as { [MessageId] = messageData }
@@ -611,18 +619,18 @@ Handlers.add(
             end
 
         initializeAppInbox(userId)
-        initializeUserSenderOutbox(sender)
+        initializeUseruserOutbox(user)
         table.insert(AppTicketInboxTable[userId].messages[ticketId].message[MessageId], {
                 AppId = appId,
                 ticketId = ticketId,
                 MessageId = MessageId,
                 Owner = userId,
-                user = sender,
+                user = user,
                 username = username,
                 profileUrl = profileUrl,
                 Status = "Open",
                 Message = message,
-                Header = Header,
+                title = title,
                 LinkInfo = LinkInfo, 
                 currentTime = currentTime,
                 replies = {},
@@ -632,11 +640,11 @@ Handlers.add(
             local UnreadMessages = AppTicketInboxTable[userId].UnreadMessages
             UnreadMessages = UnreadMessages + 1
 
-            table.insert(TicketSentBoxTable[sender].messages[ticketId], {
+            table.insert(TicketSentBoxTable[user].messages[ticketId], {
                 AppId = appId,
                 ticketId = ticketId,
                 MessageId = MessageId,
-                user = sender,
+                user = user,
                 Status = "Open",
                 username = username,
                 profileUrl = profileUrl,
@@ -647,7 +655,7 @@ Handlers.add(
                 replies = {},
                 Unreadreplies = 0
             })
-            local SentMessages = TicketSentBoxTable[sender].SentMessages
+            local SentMessages = TicketSentBoxTable[user].SentMessages
             SentMessages =  SentMessages + 1 
 
         local points = 50
@@ -656,7 +664,7 @@ Handlers.add(
         local amount = 0
         local transactionId = GenerateTransactionId()
         table.insert(Transactions, {
-            user = sender,
+            user = user,
             transactionid = transactionId,
             type = "Created Ticket.",
             amount = amount,
@@ -687,7 +695,7 @@ Handlers.add(
     function(m)
         local appId = m.Tags.AppId
         local message = m.Tags.Message
-        local sender = m.From
+        local user = m.From
         local currentTime = GetCurrentTime(m) -- Ensure you have a function to get the current timestamp
         local MessageId = GenerateMessageId()
         local username = m.Tags.username
@@ -731,10 +739,10 @@ Handlers.add(
             end
         end
         
-        local function initializeUserSenderOutbox(sender)
+        local function initializeUseruserOutbox(user)
                 -- Initialize the user's inbox only if it doesn't exist
-            if TicketSentBoxTable[sender] == nil then
-                TicketSentBoxTable[sender] = {
+            if TicketSentBoxTable[user] == nil then
+                TicketSentBoxTable[user] = {
                     messages = {
                         message = {}, 
                     },         -- Messages stored as { [MessageId] = messageData }
@@ -744,7 +752,7 @@ Handlers.add(
         end
 
         initializeAppInbox(userId)
-        initializeUserSenderOutbox(sender)
+        initializeUseruserOutbox(user)
         table.insert(AppTicketInboxTable[userId].messages[ticketId].message[MessageId], {
                 AppId = appId,
                 ticketId = ticketId,
@@ -759,7 +767,7 @@ Handlers.add(
             })
             local UnreadMessages = AppTicketInboxTable[userId].UnreadMessages
             UnreadMessages = UnreadMessages + 1
-            table.insert(TicketSentBoxTable[sender].messages[ticketId].message[MessageId].replies[replyId], {
+            table.insert(TicketSentBoxTable[user].messages[ticketId].message[MessageId].replies[replyId], {
                 AppId = appId,
                 ticketId = ticketId,
                 MessageId = MessageId,
@@ -771,7 +779,7 @@ Handlers.add(
                 replies = {},
                 Unreadreplies = 0
             })
-            local SentMessages = TicketSentBoxTable[sender].SentMessages
+            local SentMessages = TicketSentBoxTable[user].SentMessages
             SentMessages =  SentMessages + 1 
 
         local points = 50
@@ -780,7 +788,7 @@ Handlers.add(
         local amount = 0
         local transactionId = GenerateTransactionId()
         table.insert(Transactions, {
-            user = sender,
+            user = user,
             transactionid = transactionId,
             type = "Added message to."..ticketId,
             amount = amount,
@@ -803,7 +811,7 @@ Handlers.add(
     function(m)
         local appId = m.Tags.AppId
         local message = m.Tags.Message
-        local sender = m.From
+        local user = m.From
         local currentTime = GetCurrentTime(m) -- Ensure you have a function to get the current timestamp
         local replyId = GenerateReplyId()
         local username = m.Tags.username
@@ -887,10 +895,10 @@ Handlers.add(
             end
         end
         
-        local function initializeUserSenderOutbox(sender)
+        local function initializeUseruserOutbox(user)
                 -- Initialize the user's inbox only if it doesn't exist
-            if TicketSentBoxTable[sender] == nil then
-                TicketSentBoxTable[sender] = {
+            if TicketSentBoxTable[user] == nil then
+                TicketSentBoxTable[user] = {
                     messages = {
                         message = {}, 
                     },         -- Messages stored as { [MessageId] = messageData }
@@ -900,7 +908,7 @@ Handlers.add(
         end
 
         initializeAppInbox(userId)
-        initializeUserSenderOutbox(sender)
+        initializeUseruserOutbox(user)
         table.insert(AppTicketInboxTable[userId].messages[ticketId].message[MessageId].replies[replyId], {
                 AppId = appId,
                 ticketId = ticketId,
@@ -914,7 +922,7 @@ Handlers.add(
             })
             local Unreadreplies = AppTicketInboxTable[userId].messages[ticketId].message[MessageId].replies[replyId].Unreadreplies
             Unreadreplies = Unreadreplies + 1
-            table.insert(TicketSentBoxTable[sender].messages[ticketId].message[MessageId].replies[replyId], {
+            table.insert(TicketSentBoxTable[user].messages[ticketId].message[MessageId].replies[replyId], {
                 AppId = appId,
                 ticketId = ticketId,
                 MessageId = MessageId,
@@ -926,7 +934,7 @@ Handlers.add(
                 replies = {},
                 Unreadreplies = 0
             })
-            local SentMessages = TicketSentBoxTable[sender].messages[ticketId].message[MessageId].replies[replyId].Unreadreplies
+            local SentMessages = TicketSentBoxTable[user].messages[ticketId].message[MessageId].replies[replyId].Unreadreplies
             SentMessages = SentMessages + 1
         local points = 50
         local userPointsData = GetOrInitializeUserPoints(userId)
@@ -934,7 +942,7 @@ Handlers.add(
         local amount = 0
         local transactionId = GenerateTransactionId()
         table.insert(Transactions, {
-            user = sender,
+            user = user,
             transactionid = transactionId,
             type = "Added message to."..ticketId,
             amount = amount,
@@ -969,7 +977,7 @@ Handlers.add(
             end
         end
 
-        for sender, messages in pairs(TicketSentBoxTable[user]) do
+        for user, messages in pairs(TicketSentBoxTable[user]) do
             if messages[ticketId] then
                 sentTicketFound = messages[ticketId]
                 break
@@ -1062,8 +1070,8 @@ Handlers.add(
 
 
 Handlers.add(
-    "GetSenderSentBox",
-    Handlers.utils.hasMatchingTag("Action", "GetSenderSentBox"),
+    "GetuserSentBox",
+    Handlers.utils.hasMatchingTag("Action", "GetuserSentBox"),
     function(m)
         local userId = m.From
 

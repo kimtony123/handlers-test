@@ -82,7 +82,7 @@ const addaoprojects = () => {
           { name: "Action", value: "GetAirdropsByAppId" },
           { name: "appId", value: String(appId) },
         ],
-        signer: createDataItemSigner(othent),
+        signer: createDataItemSigner(window.arweaveWallet),
       });
       const { Messages, Error } = await result({
         message: getTradeMessage,
