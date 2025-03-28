@@ -533,7 +533,9 @@ Handlers.add(
         }
 
         featureRequestEntry.status = "Closed"
-        
+
+        featureRequestEntry.statusHistory[#featureRequestEntry.requests[requestId].statusHistory + 1] = { status = "Closed", time = currentTime }
+
         local transactionType = "Replied To Feature Requests"
         local amount = 0
         local points = 5
@@ -591,6 +593,10 @@ Handlers.add(
         feature.description = description
         feature.edited = true
         feature.currentTime = currentTime
+        feature.status = "Open"
+
+    
+        feature.statusHistory[#feature.statusHistory + 1] = { status = "Open", time = currentTime }
 
         local transactionType = "Edited feature Succesfully."
         local amount = 0

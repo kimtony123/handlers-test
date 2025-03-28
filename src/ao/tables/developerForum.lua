@@ -363,8 +363,8 @@ Handlers.add(
 
 
 Handlers.add(
-    "AskDevForumN",
-    Handlers.utils.hasMatchingTag("Action", "AskDevForumN"),
+    "AskDevForum",
+    Handlers.utils.hasMatchingTag("Action", "AskDevForum"),
     function(m)
         
         local description = m.Tags.description
@@ -425,13 +425,20 @@ Handlers.add(
             title = title,
             profileUrl = profileUrl,
             replies = {},
-            voters = voters
+            voters = voters,
+            statusHistory ={},
+            status = "Open",
         }
+
+        targetEntry.requests[devForumId].statusHistory[#targetEntry.requests[devForumId].statusHistory + 1] = { status = "Open", time = currentTime }
+
         local transactionType = "Added Dev Forum."
         local amount = 0
         local points = 5
         LogTransaction(m.From, appId, transactionType, amount, currentTime, points)
-        SendSuccess(m.From , "Question Added To Dev Forum")
+
+         local devForumInfo = DevForumTable[appId].requests[devForumId]
+        SendSuccess(m.From , devForumInfo)
        end
 )
 
@@ -490,6 +497,18 @@ Handlers.add(
         local finalRank = DetermineUserRank(m.From,appId, providedRank)
 
 
+        local voters = {
+            foundHelpful = {
+                count = 0,
+                countHistory = {},
+                users = {}
+            },
+            foundUnhelpful = {
+                count = 0,
+                countHistory = {},
+                users = {}
+            }
+        }
         devForumEntry.replies[replyId] =  {
             replyId = replyId,
             user = user,
@@ -498,14 +517,25 @@ Handlers.add(
             profileUrl = profileUrl,
             username = username,
             description = description,
-            createdTime = currentTime
+            createdTime = currentTime,
+            voters = voters,
+
+             
         }
+
+        devForumEntry.status = "Closed"
+        
+        devForumEntry.statusHistory[#devForumEntry.statusHistory + 1] = { status = "Closed", time = currentTime }
+
         
         local transactionType = "Replied To Developer Report"
         local amount = 0
         local points = 5
         LogTransaction(m.From, appId, transactionType, amount, currentTime, points)
-        SendSuccess(m.From , "Replied Succesfully")
+
+        local devForumInfo =  DevForumTable[appId].requests[devForumId].replies[replyId]
+
+        SendSuccess(m.From , devForumInfo)
          end
 )
 
@@ -956,7 +986,6 @@ Handlers.add(
     function(m)
         local appId = m.Tags.appId
 
-
          if not ValidateField(appId, "appId", m.From) then return end
 
         -- Ensure appId exists in DevForumTable
@@ -967,11 +996,6 @@ Handlers.add(
         -- Fetch the info
         local devForumInfo = DevForumTable[appId].requests
 
-        -- Check if there are reviews
-        if not devForumInfo or #devForumInfo == 0 then
-            SendFailure(m.From , "No Data Found in Dev Forum.")
-          return
-        end
         SendSuccess(m.From , devForumInfo)
     end
 )

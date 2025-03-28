@@ -526,7 +526,11 @@ Handlers.add(
             createdTime = currentTime,
             voters = voters
         }
+
+        bugReportEntry.status = "Closed"
         
+        bugReportEntry.statusHistory[#bugReportEntry.requests[requestId].statusHistory + 1] = { status = "Closed", time = currentTime }
+
         local transactionType = "Replied To Bug Report"
         local amount = 0
         local points = 5
@@ -579,6 +583,9 @@ Handlers.add(
         report.description = description
         report.edited = true
         report.currentTime = currentTime
+        report.status = "Open"
+
+        report.statusHistory[#report.statusHistory + 1] = { status = "Open", time = currentTime }
 
         local transactionType = "Edited Bug Report  Succesfully."
         local amount = 0
