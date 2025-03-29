@@ -163,7 +163,7 @@ Handlers.add(
         local appId = m.Tags.appId
         local user  = m.Tags.user
         local username = m.Tags.username
-        local profileUrl = m.Tags.profileUrl
+        local profiledescription = m.Tags.profiledescription
         local caller   = m.From
         local replyId  = GenerateReplyId()
         
@@ -171,7 +171,7 @@ Handlers.add(
         
 
         -- Field validation examples
-        if not ValidateField(profileUrl, "profileUrl", m.From) then return end
+        if not ValidateField(profiledescription, "profiledescription", m.From) then return end
         if not ValidateField(username, "username", m.From) then return end
         if not ValidateField(appId, "appId", m.From) then return end
         if not ValidateField(user, "user", m.From) then return end
@@ -207,7 +207,7 @@ Handlers.add(
                         [replyId] = {
                             username = username,
                             user = user ,
-                            profileUrl = profileUrl,
+                            profiledescription = profiledescription,
                             description = "https://x.com/aoTheComputer",
                             status = "Pending",
                             rank = "Architect",
@@ -536,8 +536,8 @@ Handlers.add(
         local appId = m.Tags.appId
         local taskId = m.Tags.taskId
         local username = m.Tags.username
-        local url = m.Tags.url
-        local profileUrl = m.Tags.profileUrl
+        local description = m.Tags.description
+        local profiledescription = m.Tags.profiledescription
         local providedRank = m.Tags.rank
         local user = m.From
         local currentTime = GetCurrentTime(m)
@@ -546,9 +546,9 @@ Handlers.add(
         
 
         if not ValidateField(appId, "appId", m.From) then return end
-        if not ValidateField(url, "url", m.From) then return end
+        if not ValidateField(description, "description", m.From) then return end
         if not ValidateField(username, "username", m.From) then return end
-        if not ValidateField(profileUrl, "profileUrl", m.From) then return end
+        if not ValidateField(profiledescription, "profiledescription", m.From) then return end
         if not ValidateField(taskId, "taskId", m.From) then return end
         if not ValidateField(providedRank, "providedRank", m.From) then return end
 
@@ -576,7 +576,7 @@ Handlers.add(
         -- Check if the user has already replied to this review
         if targetTasks.replies then
             for _, reply in ipairs(targetTasks.replies) do
-                if reply.url == url then
+                if reply.description == description then
                     local transactionType = "Replied twice using the same description"
                     local amount = 0
                     local points = -10
@@ -597,14 +597,14 @@ Handlers.add(
         TaskTable[appId].tasks[taskId].replies[replyId] =  {
             replyId = replyId,
             user = user ,
-            url = url,
+            description = description,
             status = "Pending",
             completedTasks = {
                             completed = false,
                             completedTime = currentTime,  -- When the task was completed
-                             proof = url,  -- Optional: Proof of completion (like a link or TX hash)
+                             proof = description,  -- Optional: Proof of completion (like a link or TX hash)
                              amount = amount},           
-            profileUrl = profileUrl,
+            profiledescription = profiledescription,
             rank = finalRank,
             username = username,
             createdTime = currentTime

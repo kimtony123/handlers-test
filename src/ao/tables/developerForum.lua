@@ -679,15 +679,17 @@ Handlers.add(
 
 
 
+
+
 Handlers.add(
-    "MarkUnhelpfulDevForum",
-    Handlers.utils.hasMatchingTag("Action", "MarkUnhelpfulDevForum"),
+    "MarkUnhelpfulDevForumPost",
+    Handlers.utils.hasMatchingTag("Action", "MarkUnhelpfulDevForumPost"),
     function(m)
         local appId = m.Tags.appId
         local devForumId = m.Tags.devForumId
         local user = m.From
         local currentTime = GetCurrentTime(m) -- Ensure you have a function to get the current timestamp
-        local username = m.Tags.username
+        
 
         if not ValidateField(appId, "appId", m.From) then return end
         if not ValidateField(devForumId, "devForumId", m.From) then return end
@@ -698,7 +700,7 @@ Handlers.add(
         end
 
         if DevForumTable[appId].requests[devForumId] == nil then
-            SendFailure(m.From, "feature doesnt exist for  specified DevForumId..")
+            SendFailure(m.From, "DEvForumPost doesnt exist for  specified devForumId..")
             return
         end
 
@@ -707,16 +709,16 @@ Handlers.add(
         local unhelpfulData = devForum.voters.foundUnhelpful
         local helpfulData = devForum.voters.foundHelpful
 
-        if unhelpfulData.users[user].voted then
-            SendFailure(m.From, "You have already marked this feature as unhelpful.")
+        if unhelpfulData.users[user] then
+            SendFailure(m.From, "You have already marked this DevForum as unhelpful.")
             return
         end
 
-        if helpfulData.users[user].voted then
+        if helpfulData.users[user] then
             helpfulData.users[user] = nil
             helpfulData.count = helpfulData.count - 1
 
-            helpfulData.countHistory[#helpfulData.countHistory + 1] = { time = currentTime, count = helpfulData.count }
+            table.insert(helpfulData.countHistory,{ time = currentTime, count = helpfulData.count } )
             
             local transactionType = "Switched vote to unhelpful."
             local amount = 0
@@ -727,8 +729,8 @@ Handlers.add(
         unhelpfulData.users[user] = { voted = true, time = currentTime }
         unhelpfulData.count = unhelpfulData.count + 1
 
-        unhelpfulData.countHistory[#unhelpfulData.countHistory + 1] = { time = currentTime, count = unhelpfulData.count }
-
+        table.insert(unhelpfulData.countHistory, { time = currentTime, count = unhelpfulData.count })
+        
         local transactionType = "Marked DevForum post Unhelpful."
         local amount = 0
         local points = 3
@@ -737,9 +739,10 @@ Handlers.add(
         end
 )
 
+
 Handlers.add(
-    "MarkHelpfulDevForum",
-    Handlers.utils.hasMatchingTag("Action", "MarkHelpfulDevForum"),
+    "MarkHelpfulDevForumPost",
+    Handlers.utils.hasMatchingTag("Action", "MarkHelpfulDevForumPost"),
     function(m)
         local appId = m.Tags.appId
         local devForumId = m.Tags.devForumId
@@ -757,7 +760,7 @@ Handlers.add(
         end
 
         if DevForumTable[appId].requests[devForumId] == nil then
-            SendFailure(m.From, "devForum post doesnt exist for  specified AppId..")
+            SendFailure(m.From, "DevForumPost  post doesnt exist for  specified AppId..")
             return
         end
 
@@ -767,8 +770,8 @@ Handlers.add(
        
         local unhelpfulData = devForum.voters.foundUnhelpful
         
-        if helpfulData.users[user].voted then
-            SendFailure(m.From , "You already marked this dev Forum as helpful.")
+        if helpfulData.users[user] then
+            SendFailure(m.From , "You already marked this post  as helpful.")
             return
         end
 
@@ -776,7 +779,7 @@ Handlers.add(
             unhelpfulData.users[user] = nil
             unhelpfulData.count = unhelpfulData.count - 1
 
-            unhelpfulData.countHistory[#unhelpfulData.countHistory + 1] = { time = currentTime, count = unhelpfulData.count }
+            table.insert(unhelpfulData.countHistory,{ time = currentTime, count = unhelpfulData.count } )
             
             local transactionType = "Switched vote to helpful."
             local amount = 0
@@ -787,14 +790,18 @@ Handlers.add(
 
         helpfulData.users[user] = { voted = true, time = currentTime }
         helpfulData.count = helpfulData.count + 1
-        helpfulData.countHistory[#helpfulData.countHistory + 1] = { time = currentTime, count =helpfulData.count }
-        local transactionType = "Marked DevForum post  Helpful"
+
+        table.insert(helpfulData.countHistory, { time = currentTime, count = helpfulData.count })
+        local transactionType = "Marked DevForumPost post  Helpful"
         local amount = 0
         local points = 3
+        
+        
         LogTransaction(m.From, appId, transactionType, amount, currentTime, points)  
-        SendSuccess(m.From , "Marked the DevForum post  Helpful Succesfully" )   
+        SendSuccess(m.From , "Marked the post as Helpful Succesfully" )   
     end
 )
+
 
 
 Handlers.add(
