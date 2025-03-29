@@ -820,6 +820,33 @@ Handlers.add(
 
 
 Handlers.add(
+    "FetchTaskInfo",
+    Handlers.utils.hasMatchingTag("Action", "FetchTaskInfo"),
+    function(m)
+        local user = m.From
+        local appId = m.Tags.appId 
+        local taskId = m.Tags.taskId
+
+      
+        if not ValidateField(taskId, "taskId", m.From) then return end
+        if not ValidateField(appId, "appId", m.From) then return end
+
+        if TaskTable[appId].requests[taskId]  == nil then
+            SendFailure(m.From, "task does not exists for that AppId..")
+            return
+        end
+
+        -- Check if the Airdrop exists
+        local taskInfo = TaskTable[appId].requests[taskId]
+        
+
+        SendSuccess(m.From ,taskInfo)
+
+    end
+)
+
+
+Handlers.add(
     "GetAosPointsTable",
     Handlers.utils.hasMatchingTag("Action", "GetAosPointsTable"),
     function(m)
