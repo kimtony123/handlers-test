@@ -191,6 +191,7 @@ Handlers.add(
                 rank = "Architect",
                 edited = false,
                 profileUrl = profileUrl,
+                topic = "Technical Requirements",
                 username = username,
                 description = "Hey, how do I get started on aocomputer?",
                 title = "Integration and Dependencies",
@@ -373,6 +374,7 @@ Handlers.add(
         local profileUrl = m.Tags.profileUrl
         local appId = m.Tags.appId
         local title = m.Tags.title
+        local topic = m.Tags.topic
         local currentTime = GetCurrentTime(m)
         local devForumId = GenerateDevForumId()
         local providedRank = m.Tags.rank
@@ -383,7 +385,8 @@ Handlers.add(
         if not ValidateField(description, "description", m.From) then return end
         if not ValidateField(username, "username", m.From) then return end
         if not ValidateField(profileUrl, "profileUrl", m.From) then return end
-       
+        if not ValidateField(topic, "topic", m.From) then return end
+     
         -- Check if appId exists in DevForumTable, initialize if missing
         if DevForumTable[appId] == nil then
             SendFailure(m.From, "App doesnt exist for  specified AppId..")
@@ -425,6 +428,7 @@ Handlers.add(
             title = title,
             profileUrl = profileUrl,
             replies = {},
+            topic = topic,
             voters = voters,
             statusHistory ={},
             status = "Open",
@@ -553,12 +557,14 @@ Handlers.add(
         local description = m.Tags.description
         local providedRank = m.Tags.rank
         local title = m.Tags.title
+        local topic = m.Tags.topic
 
         if not ValidateField(appId, "appId", m.From) then return end
         if not ValidateField(devForumId, "devForumId", m.From) then return end
         if not ValidateField(description, "description", m.From) then return end
         if not ValidateField(providedRank, "providedRank", m.From) then return end
         if not ValidateField(title, "title", m.From) then return end
+        if not ValidateField(topic, "topic", m.From) then return end
 
 
         if not DevForumTable[appId] then
@@ -585,15 +591,45 @@ Handlers.add(
         feature.description = description
         feature.edited = true
         feature.currentTime = currentTime
+        feature.topic = topic
 
         local transactionType = "Edited feature Succesfully."
         local amount = 0
         local points = -5
         LogTransaction(m.From, appId, transactionType, amount, currentTime, points)  
-        SendSuccess(m.From , "feature Edited Succesfully." )   
+        
+        local devForumInfo = DevForumTable[appId].requests[devForumId]
+       
+        SendSuccess(m.From , devForumInfo)   
     end
 )
 
+
+Handlers.add(
+    "FetchDevForumPost",
+    Handlers.utils.hasMatchingTag("Action", "FetchDevForumPost"),
+    function(m)
+        local user = m.From
+        local appId = m.Tags.appId 
+        local devForumId = m.Tags.devForumId
+
+      
+        if not ValidateField(devForumId, "devForumId", m.From) then return end
+        if not ValidateField(appId, "appId", m.From) then return end
+
+        if DevForumTable[appId].requests[devForumId]  == nil then
+            SendFailure(m.From, "devforum post does not exists for that AppId..")
+            return
+        end
+
+        -- Check if the Airdrop exists
+        local devForumInfo = DevForumTable[appId].requests[devForumId]
+        
+
+        SendSuccess(m.From ,devForumInfo)
+
+    end
+)
 
 Handlers.add(
     "DeleteDevForumAsk",
@@ -930,7 +966,11 @@ Handlers.add(
         local amount = 0
         local points = -3
         LogTransaction(m.From, appId, transactionType, amount, currentTime, points)  
-        SendSuccess(m.From , "Edited Reply Succesfully." )   
+        
+        
+        local devForumInfo = DevForumTable[appId].requests[devForumId].replies[replyId]
+
+        SendSuccess(m.From , devForumInfo)   
     end
 )
 

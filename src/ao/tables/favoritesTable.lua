@@ -420,8 +420,8 @@ Handlers.add(
 
 
 Handlers.add(
-    "SendNotificationToInbox",
-    Handlers.utils.hasMatchingTag("Action", "SendNotificationToInbox"),
+    "SendMessage",
+    Handlers.utils.hasMatchingTag("Action", "SendMessage"),
     function(m)
         local appId = m.Tags.appId
         local message = m.Tags.message
@@ -445,16 +445,13 @@ Handlers.add(
          return
         end
 
-        -- Verify that the user is the owner of the app
-        if not  appDetails.owner ~= user then
-            SendFailure(m.From , "You are not the Owner of this App.")
-         return
-        end
+        print ("owner :" ..FavoritesTable[appId].owner )
 
-        -- Check if the user is the app owner
+         print ("user :" .. user )
+
         if not  FavoritesTable[appId].owner ~= user  then
-            SendFailure(m.From, "Only the app owner can send messages.")
-        end
+           SendFailure(m.From, "Only the app owner can send messages.")
+       end
 
         -- Check if the app has any favorites
         local favorites = FavoritesTable[appId]
@@ -467,31 +464,26 @@ Handlers.add(
         -- Send the message to each user's inbox
         for userId, _ in pairs(favorites.users) do
             -- Function to initialize a user's inbox if it doesn't exist
-            local function initializeUserInbox(userId)
-                -- Initialize the user's inbox only if it doesn't exist
-                if InboxTable[userId] == nil then
-                    InboxTable[userId] = {
-                        messages = {}, -- Messages stored as { [MessageId] = messageData }
-                        UnreadMessages = 0 -- Counter for unread messages
-                    }
-                end
-            end
 
-            local function initializeuserOutbox(user)
-                -- Initialize the user's inbox only if it doesn't exist
-                if SentBoxTable[user] == nil then
+
+            InboxTable[userId] = InboxTable[userId] or {}
+            SentBoxTable[user] = SentBoxTable[user] or {}
+          
+            if InboxTable[userId] == nil then
+                InboxTable[userId] = {
+                        messages = {}, -- Messages stored as { [MessageId] = messageData }
+                        UnreadMessages = 0 }
+            end
+           
+            if SentBoxTable[user] == nil then
                     SentBoxTable[user] = {
                         messages = {}, -- Messages stored as { [MessageId] = messageData }
                         SentMessages = 0 -- Counter for unread messages
                     }
                 end
-                SentBoxTable[user] = SentBoxTable[user] or {}
-            end
-
-            initializeUserInbox(userId)
-            initializeuserOutbox(user)
             
-            InboxTable[userId].messages[messageId][#InboxTable[userId].messages[messageId] + 1] =
+            
+            InboxTable[userId].messages[messageId] =
             {
                 appId = appId,
                 messageId = messageId,
@@ -508,7 +500,7 @@ Handlers.add(
 
             UnreadMessages = UnreadMessages + 1
 
-            SentBoxTable[user].messages[messageId][#SentBoxTable[user].messages[messageId] + 1] =
+            SentBoxTable[user].messages[messageId] =
             {
                 appId = appId,
                 messageId = messageId,

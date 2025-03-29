@@ -186,7 +186,8 @@ Handlers.add(
             tokenDenomination =  tokenDenomination ,
             tokenTicker =  tokenTicker ,
             tokenName = tokenName,
-            tokenId = tokenId
+            tokenId = tokenId,
+            tokenCount = 0
         }
 
         AosPoints[appId] = {
@@ -308,7 +309,75 @@ Handlers.add(
 )
 
 
+Handlers.add(
+    "AddTokenDetails",
+    Handlers.utils.hasMatchingTag("Action", "AddTokenDetails"),
+    function(m)
+        local appId = m.Tags.appId
+        local user = m.From
+        local currentTime = GetCurrentTime(m) -- Ensure you have a function to get the current timestamp
+        local tokenId = m.Tags.tokenId
+        local tokenName = m.Tags.tokenName
+        local tokenTicker = m.Tags.ticker
+        local tokenDenomination = m.Tags.denomination
 
+        if not ValidateField(tokenId, "tokenId", m.From) then return end
+        if not ValidateField(tokenName, "tokenName", m.From) then return end
+        if not ValidateField(tokenDenomination, "tokenDenomination", m.From) then return end
+        if not ValidateField(tokenTicker, "tokenTicker", m.From) then return end
+        if not ValidateField(appId, "appId", m.From) then return end
+  
+
+        if not Tokens[appId] then
+            SendFailure(m.From, "App not found...")
+            return
+        end
+        
+        if not Tokens[appId].owner ~= user then
+            SendFailure(m.From, "Only the owner can Update this tokens details.")
+        end
+
+        if  Tokens[appId].tokenCount > 1 then
+            SendFailure(m.From, "You Cant update your token details twice")
+        end
+        
+        local report =  Tokens[appId]
+
+        report.tokenId = tokenId
+        report.tokenName = tokenName
+        report.tokenDenomination = tokenDenomination
+        report.tokenTicker = tokenTicker
+        report.tokenCount = report.tokenCount + 1
+
+
+        local transactionType = "Added Token information Succesfully."
+        local amount = 0
+        local points = 5
+        LogTransaction(m.From, appId, transactionType, amount, currentTime, points)
+        local reportInfo =  Tokens[appId]
+        SendSuccess(m.From , reportInfo)   
+    end
+)
+
+
+Handlers.add(
+    "GetTokenDetails",
+    Handlers.utils.hasMatchingTag("Action", "GetTokenDetails"),
+    function(m)
+        local appId = m.Tags.appId
+        local user = m.From
+    
+        if not ValidateField(appId, "appId", m.From) then return end
+  
+        if not Tokens[appId] then
+            SendFailure(m.From, "App not found...")
+            return
+        end
+
+        local reportInfo =  Tokens[appId]
+        SendSuccess(user , reportInfo)   
+    end
+)
 
 
 -- Handler to view all transactions

@@ -12,6 +12,12 @@ PROCESS_NAME_MAIN = "aos aostoreP "
 PROCESS_ID_MAIN = "8vRoa-BDMWaVzNS-aJPHLk_Noss0-x97j88Q3D4REnE"
 
 
+-- Stakers process details
+PROCESS_NAME = "aos Stakers_Table"
+PROCESS_ID_AOS_STAKERS = "95butVk7xiquzqadgbqrrFtKCPtaEumi27ckEnIN4ww"
+
+
+
 -- Credentials token
 ARS = "8vRoa-BDMWaVzNS-aJPHLk_Noss0-x97j88Q3D4REnE"
 
@@ -51,7 +57,7 @@ end
 
 -- Function to get the current time in milliseconds
 function GetCurrentTime(msg)
-    return msg.Timestamp -- returns time in milliseconds
+    return msg.createdTime -- returns time in milliseconds
 end
 
 -- Function to generate a unique transaction ID
@@ -123,7 +129,7 @@ function LogTransaction(user, appId, transactionType, amount, currentTime, point
             transactionType = transactionType,
             amount = amount,
             points = currentPoints,
-            timestamp = currentTime
+            createdTime = currentTime
         }
 end
 
@@ -190,7 +196,8 @@ Handlers.add(
             description = "Launched on aostore",
             tasksAmount = 50000,
             taskerCount = 500,
-            amountPerTask = 50000/500,
+            amountPerTask = 50000 / 500,
+            title = "Launched aostore",
             tokenDenomination = 3 ,
             tokenId = ARS,
          completedRate = {
@@ -201,7 +208,7 @@ Handlers.add(
                             username = username,
                             user = user ,
                             profileUrl = profileUrl,
-                            comment = "https://x.com/aoTheComputer",
+                            description = "https://x.com/aoTheComputer",
                             status = "Pending",
                             rank = "Architect",
                             completedTasks = {
@@ -370,11 +377,6 @@ Handlers.add(
         -- Fetch the info
         local tasks = TaskTable[appId].tasks
 
-        -- Check if there are reviews
-        if not tasks or #tasks == 0 then
-            SendFailure(m.From , "No Data Found in Dev Forum.")
-          return
-        end
         SendSuccess(m.From , tasks)
     end
 )
@@ -382,21 +384,33 @@ Handlers.add(
 
 Handlers.add(
     "DepositConfirmedAddNewTask",
-    Handlers.utils.hasMatchingTag("Action", "DepositConfirmedN"),
+    Handlers.utils.hasMatchingTag("Action", "DepositConfirmedAddNewTask"),
     function(m)
         local userId = m.From
         local appId = m.Tags.appId
         local tokenId = m.Tags.tokenId
-        local tokenDenomination = m.Tags.denomination
+        local tokenDenomination = m.Tags.tokenDenomination
         local amount = tonumber(m.Tags.amount)
         local currentTime = GetCurrentTime(m)
-        local taskId = GenerateAirdropId()
+        local taskId = GenerateTaskId()
 
         if not ValidateField(appId, "appId", m.From) then return end
         if not ValidateField(tokenId, "tokenId", m.From) then return end
         if not ValidateField(tokenDenomination, "tokenDenomination", m.From) then return end
         if not ValidateField(amount, "amount", m.From) then return end
 
+
+        local fees = amount * 0.02 * tokenDenomination
+        
+        -- Send reward tokens
+        ao.send({
+            Target = tokenId,
+            Action = "Transfer",
+            Quantity = tostring(fees),
+            Recipient = tostring(PROCESS_ID_STAKERS)
+        })
+ 
+        local amount = amount * 0.979
          -- Ensure appId exists in BugsReportsTable
         if TaskTable[appId] == nil then
             SendFailure(m.From ,"App doesnt exist for  specified App" )
@@ -422,7 +436,8 @@ Handlers.add(
             taskId = taskId,
             amount = amount,
             tokenId = tokenId,
-            tokenDenomination = tokenDenomination
+            tokenDenomination = tokenDenomination,
+            
         }
 
         -- Update count and history
@@ -440,8 +455,7 @@ Handlers.add(
        
 
         -- Send confirmation back to the App Owner
-        SendSuccess(m.From, "Deposit confirmed for AppId: " .. appId .. ", tokenId: " .. tokenId .. ", Amount: " .. amount)
-        
+        SendSuccess(m.From, taskId)
     end
 )
 
@@ -456,12 +470,14 @@ Handlers.add(
         local task = m.Tags.task
         local description = m.Tags.description
         local taskerCount = m.Tags.taskerCount
+        local title  = m.Tags.title
         local userId = m.From
         local currentTime = GetCurrentTime(m)
 
        
 
         if not ValidateField(appId, "appId", m.From) then return end
+         if not ValidateField(title, "title", m.From) then return end
         if not ValidateField(link, "link", m.From) then return end
         if not ValidateField(taskId, "taskId", m.From) then return end
         if not ValidateField(task, "task", m.From) then return end
@@ -482,9 +498,13 @@ Handlers.add(
 
         local taskFound = TaskTable[appId].tasks[taskId]
 
-        local amountPerTask = (taskFound.amount/ taskFound.taskerCount)
+
+        
+        local amountPerTask = (taskFound.amount/taskerCount)
         
         local replies = {}
+        local completedRate  = {}
+        
         -- Update the task with new information
         taskFound.link  = link
         taskFound.task = task
@@ -492,7 +512,10 @@ Handlers.add(
         taskFound.status = "Ongoing" -- Update status to Ongoing
         taskFound.description = description
         taskFound.amountPerTask = amountPerTask
-        taskFound.replies = replies
+        taskFound.replies  = replies
+        taskFound.title  = title
+        taskFound.completedRate = completedRate
+        
         
         local transactionType = "Task Finalization."
         local amount = 0
@@ -505,27 +528,25 @@ Handlers.add(
 
 
 
-
-
 Handlers.add(
     "AddTaskReply",
-    Handlers.utils.hasMatchingTag("Action", "AddTaskReplys"),
+    Handlers.utils.hasMatchingTag("Action", "AddTaskReply"),
     function(m)
 
         local appId = m.Tags.appId
         local taskId = m.Tags.taskId
         local username = m.Tags.username
-        local comment = m.Tags.comment
+        local url = m.Tags.url
         local profileUrl = m.Tags.profileUrl
+        local providedRank = m.Tags.rank
         local user = m.From
         local currentTime = GetCurrentTime(m)
         local replyId = GenerateReplyId()
-        local providedRank = m.Tags.rank
+        
         
 
-
         if not ValidateField(appId, "appId", m.From) then return end
-        if not ValidateField(comment, "comment", m.From) then return end
+        if not ValidateField(url, "url", m.From) then return end
         if not ValidateField(username, "username", m.From) then return end
         if not ValidateField(profileUrl, "profileUrl", m.From) then return end
         if not ValidateField(taskId, "taskId", m.From) then return end
@@ -548,15 +569,17 @@ Handlers.add(
         end
 
 
+
+
         local targetTasks =  TaskTable[appId].tasks[taskId]
 
         -- Check if the user has already replied to this review
         if targetTasks.replies then
             for _, reply in ipairs(targetTasks.replies) do
-                if reply.comment == comment then
-                    local transactionType = "Replied twice using the same comment"
+                if reply.url == url then
+                    local transactionType = "Replied twice using the same description"
                     local amount = 0
-                    local points = -30
+                    local points = -10
                     LogTransaction(m.From, appId, transactionType, amount, currentTime, points)
                     SendFailure(m.From, "This link has already been replied , 30 AosPoints deducted")
                     return
@@ -574,23 +597,27 @@ Handlers.add(
         TaskTable[appId].tasks[taskId].replies[replyId] =  {
             replyId = replyId,
             user = user ,
-            comment = comment,
+            url = url,
             status = "Pending",
             completedTasks = {
                             completed = false,
                             completedTime = currentTime,  -- When the task was completed
-                             proof = comment,  -- Optional: Proof of completion (like a link or TX hash)
+                             proof = url,  -- Optional: Proof of completion (like a link or TX hash)
                              amount = amount},           
             profileUrl = profileUrl,
             rank = finalRank,
             username = username,
-            timestamp = currentTime
+            createdTime = currentTime
         }
         local transactionType = "Finished A task."
         local amount = 0
         local points = 3
         LogTransaction(m.From, appId, transactionType, amount, currentTime, points)
-        SendSuccess(m.From , "Task submitted Succesfully")
+
+        
+        local replyInfo = TaskTable[appId].tasks[taskId].replies[replyId]
+
+        SendSuccess(m.From , replyInfo)
          end
 )
 
@@ -628,8 +655,14 @@ Handlers.add(
         end
 
 
+        local taskFound = TaskTable[appId].tasks[taskId]
 
-        local targetReply =  TaskTable[appId].tasks[taskId][replyId]
+        taskFound.completedRate.completeCount =  taskFound.completedRate.completeCount +1
+
+        taskFound.completedRate.remainingTasks =  taskFound.taskerCount - 1
+
+        local targetReply = TaskTable[appId].tasks[taskId][replyId]
+        
 
         if targetReply == nil then
             SendFailure(m.From, "reply Id doesnt exist for  specified AppId..")
@@ -640,6 +673,8 @@ Handlers.add(
             SendFailure(m.From, "Reward already sent to the user")
             return
         end
+
+
         
         local gift = TaskTable[appId].tasks[taskId].amountPerTask
          
@@ -657,7 +692,8 @@ Handlers.add(
         Quantity = tostring(amount),
         Recipient = tostring(user)})
 
-
+        
+        
         targetReply.completedTasks.completed = true
         targetReply.completedTasks.completedTime = currentTime
 
@@ -685,7 +721,7 @@ Handlers.add(
         local appId = m.Tags.appId
         local modId = m.Tags.modId
         local user = m.From
-        local currentTime = GetCurrentTime(m) -- Ensure you have a function to get the current timestamp
+        local currentTime = GetCurrentTime(m) -- Ensure you have a function to get the current createdTime
         
 
         if not ValidateField(appId, "appId", m.From) then return end
@@ -723,7 +759,7 @@ Handlers.add(
         local appId = m.Tags.appId
         local modId = m.Tags.modId
         local user = m.From
-        local currentTime = GetCurrentTime(m) -- Ensure you have a function to get the current timestamp
+        local currentTime = GetCurrentTime(m) -- Ensure you have a function to get the current createdTime
         
 
         if not ValidateField(appId, "appId", m.From) then return end

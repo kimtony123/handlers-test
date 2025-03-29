@@ -70,25 +70,17 @@ const addaoprojects = () => {
     }
   }
 
-  const AIRDROP = "2aXLWDFCbnxxBb2OyLmLlQHwPnrpN8dDZtB9Y9aEdOE";
-
+  const AIRDROP = "a_YRsw_22Dw5yPdQCUmVFAeI8J3OUsCGc_z0KrtEvNg";
+  const appId = "TX1";
   // In addproject function, use these values directly
   const addProjectB = async () => {
     setIsAddProjectB(true);
-    const appId = "TX1";
-    const messageX = "Welcome to aostore.";
-    const title = "Welcoming message.";
-    const link = "https://aostore-orpin.vercel.app/";
-
     try {
       const getTradeMessage = await message({
         process: AIRDROP,
         tags: [
-          { name: "Action", value: "SendNotificationToInbox" },
+          { name: "Action", value: "FetchAppTasks" },
           { name: "appId", value: String(appId) },
-          { name: "message", value: String(messageX) },
-          { name: "title", value: String(title) },
-          { name: "link", value: String(link) },
         ],
         signer: createDataItemSigner(window.arweaveWallet),
       });
@@ -116,101 +108,6 @@ const addaoprojects = () => {
     }
   };
 
-  // In addproject function, use these values directly
-  const AddProjectC = async () => {
-    setIsAddProjectC(true);
-    const description = "I cant login using my apps.";
-    const profileUrl =
-      "https://pbs.twimg.com/media/Gh1cRRvXkAAXLSS?format=jpg&name=small";
-    const username = "Tony.";
-    const title = "login issues.";
-    const rank = "Oracle";
-    const appId = "TX1";
-    try {
-      const getTradeMessage = await message({
-        process: AIRDROP,
-        tags: [
-          { name: "Action", value: "AskDevForum" },
-          { name: "appId", value: String(appId) },
-          { name: "username", value: String(username) },
-          { name: "profileUrl", value: String(profileUrl) },
-          { name: "description", value: String(description) },
-          { name: "title", value: String(title) },
-          { name: "rank", value: String(rank) },
-        ],
-        signer: createDataItemSigner(window.arweaveWallet),
-      });
-      const { Messages, Error } = await result({
-        message: getTradeMessage,
-        process: AIRDROP,
-      });
-
-      if (Error) {
-        console.log(Error);
-        alert("Error Adding Project:" + Error);
-        return;
-      }
-      if (!Messages || Messages.length === 0) {
-        alert("No messages were returned from ao. Please try later.");
-        return;
-      }
-      const data = Messages[Messages.length - 1]?.Data; // Get the last message's data
-      console.log("Last message data:", data);
-      alert(data);
-    } catch (error) {
-      alert("There was an error in the trade process: " + error);
-    } finally {
-      setIsAddProjectC(false);
-    }
-  };
-
-  const AddProjectD = async () => {
-    setIsAddProjectD(true);
-    const appId = "TX1";
-    const description = "Use Othent.";
-    const profileUrl =
-      "https://pbs.twimg.com/media/Gh1cRRvXkAAXLSS?format=jpg&name=small";
-    const username = "aostore.";
-    const devForumId = "DX3";
-    const rank = "Oracle";
-
-    try {
-      const getTradeMessage = await message({
-        process: AIRDROP,
-        tags: [
-          { name: "Action", value: "AddDevForumReply" },
-          { name: "appId", value: String(appId) },
-          { name: "devForumId", value: String(devForumId) },
-          { name: "rank", value: String(rank) },
-          { name: "username", value: String(username) },
-          { name: "profileUrl", value: String(profileUrl) },
-          { name: "description", value: String(description) },
-        ],
-        signer: createDataItemSigner(window.arweaveWallet),
-      });
-      const { Messages, Error } = await result({
-        message: getTradeMessage,
-        process: AIRDROP,
-      });
-
-      if (Error) {
-        console.log(Error);
-        alert("Error Adding Project:" + Error);
-        return;
-      }
-      if (!Messages || Messages.length === 0) {
-        alert("No messages were returned from ao. Please try later.");
-        return;
-      }
-      const data = Messages[Messages.length - 1]?.Data; // Get the last message's data
-      console.log("Last message data:", data);
-    } catch (error) {
-      alert("There was an error in the trade process: " + error);
-    } finally {
-      setIsAddProjectD(false);
-    }
-  };
-
   const deposit = async () => {
     setIsLoadingDeposit(true); // Start spinner for deposit
     const appId = "TX1";
@@ -226,7 +123,7 @@ const addaoprojects = () => {
         process: processId,
         tags: [
           { name: "Action", value: "Transfer" },
-          { name: "Recipient", value: String(ARS) },
+          { name: "Recipient", value: String(AIRDROP) },
           { name: "Quantity", value: String(realDeposit) },
         ],
         signer: createDataItemSigner(window.arweaveWallet),
@@ -252,7 +149,7 @@ const addaoprojects = () => {
       const getPropMessage = await message({
         process: AIRDROP,
         tags: [
-          { name: "Action", value: "DepositConfirmedN" },
+          { name: "Action", value: "DepositConfirmedAddNewTask" },
           { name: "appId", value: String(appId) },
           { name: "tokenId", value: String(processId) },
           { name: "tokenName", value: String(tokenName) },
@@ -285,6 +182,144 @@ const addaoprojects = () => {
     }
   };
 
+  // In addproject function, use these values directly
+  const AddProjectC = async () => {
+    setIsAddProjectC(true);
+    const appId = "TX1";
+    const taskId = "PX4";
+    const replyId = "RX3";
+    try {
+      const getTradeMessage = await message({
+        process: AIRDROP,
+        tags: [
+          { name: "Action", value: "RewardTask" },
+          { name: "appId", value: String(appId) },
+          { name: "taskId", value: String(taskId) },
+          { name: "replyId", value: String(replyId) },
+        ],
+        signer: createDataItemSigner(window.arweaveWallet),
+      });
+      const { Messages, Error } = await result({
+        message: getTradeMessage,
+        process: AIRDROP,
+      });
+
+      if (Error) {
+        console.log(Error);
+        alert("Error Adding Project:" + Error);
+        return;
+      }
+      if (!Messages || Messages.length === 0) {
+        alert("No messages were returned from ao. Please try later.");
+        return;
+      }
+      const data = Messages[Messages.length - 1]?.Data; // Get the last message's data
+      console.log("Last message data:", data);
+      alert(data);
+    } catch (error) {
+      alert("There was an error in the trade process: " + error);
+    } finally {
+      setIsAddProjectC(false);
+    }
+  };
+
+  const AddProjectD = async () => {
+    setIsAddProjectD(true);
+
+    const taskId = "PX4";
+    const appId = "TX1";
+    const taskerCount = 5;
+    const link = "https://x.com/ar_aostore";
+    const description =
+      "Create a tweet/thread  about aostore and reply with the tweet Url and get 250 AOS tokens";
+
+    const task = "Create , thread follow on twitter 250 AOS reward";
+
+    const title = "Twitter Task.";
+    try {
+      const getTradeMessage = await message({
+        process: AIRDROP,
+        tags: [
+          { name: "Action", value: "FinalizeTask" },
+          { name: "appId", value: String(appId) },
+          { name: "taskId", value: String(taskId) },
+          { name: "title", value: String(title) },
+          { name: "task", value: String(task) },
+          { name: "taskerCount", value: String(taskerCount) },
+          { name: "link", value: String(link) },
+          { name: "description", value: String(description) },
+        ],
+        signer: createDataItemSigner(window.arweaveWallet),
+      });
+      const { Messages, Error } = await result({
+        message: getTradeMessage,
+        process: AIRDROP,
+      });
+
+      if (Error) {
+        console.log(Error);
+        alert("Error Adding Project:" + Error);
+        return;
+      }
+      if (!Messages || Messages.length === 0) {
+        alert("No messages were returned from ao. Please try later.");
+        return;
+      }
+      const data = Messages[Messages.length - 1]?.Data; // Get the last message's data
+      console.log("Last message data:", data);
+    } catch (error) {
+      alert("There was an error in the trade process: " + error);
+    } finally {
+      setIsAddProjectD(false);
+    }
+  };
+
+  const AddProjectE = async () => {
+    setIsAddProjectE(true);
+
+    const appId = "TX1";
+    const taskId = "PX4";
+    const username = "TONY";
+    const profileUrl = "";
+    const rank = "Oracle";
+    const url = "https://x.com/ar_aostore/status/1905231430025670998";
+    try {
+      const getTradeMessage = await message({
+        process: AIRDROP,
+        tags: [
+          { name: "Action", value: "AddTaskReply" },
+          { name: "appId", value: String(appId) },
+          { name: "taskId", value: String(taskId) },
+          { name: "username", value: String(username) },
+          { name: "profileUrl", value: String(profileUrl) },
+          { name: "rank", value: String(rank) },
+          { name: "url", value: String(url) },
+        ],
+        signer: createDataItemSigner(window.arweaveWallet),
+      });
+      const { Messages, Error } = await result({
+        message: getTradeMessage,
+        process: AIRDROP,
+      });
+
+      if (Error) {
+        console.log(Error);
+        alert("Error Adding Project:" + Error);
+        return;
+      }
+      if (!Messages || Messages.length === 0) {
+        alert("No messages were returned from ao. Please try later.");
+        return;
+      }
+      const data = Messages[Messages.length - 1]?.Data; // Get the last message's data
+      console.log("Last message data:", data);
+    } catch (error) {
+      alert("There was an error in the trade process: " + error);
+    } finally {
+      setIsAddProjectE(false);
+    }
+  };
+
   return (
     <div
       className={classNames(
@@ -294,7 +329,7 @@ const addaoprojects = () => {
       <div className="text-white flex flex-col items-center lg:items-start">
         <Container textAlign="center">
           <Header textAlign="center" as="h1">
-            DevForum.
+            Tasks.
           </Header>
 
           <Grid textAlign="center">
@@ -304,7 +339,7 @@ const addaoprojects = () => {
                 loading={isaddprojectB}
                 onClick={() => addProjectB()} // Open the Confirm popup
               >
-                SendMessage.
+                FetchAppTasks.
               </Button>
             </GridRow>
             <GridRow>
@@ -313,16 +348,7 @@ const addaoprojects = () => {
                 loading={isaddprojectC}
                 onClick={() => AddProjectC()} // Open the Confirm popup
               >
-                AskDevForum
-              </Button>
-            </GridRow>
-            <GridRow>
-              <Button
-                primary
-                loading={isaddprojectD}
-                onClick={() => AddProjectD()} // Open the Confirm popup
-              >
-                AddDevForumReply
+                Reward User.
               </Button>
             </GridRow>
             <GridRow>
@@ -331,7 +357,16 @@ const addaoprojects = () => {
                 loading={isLoadingDeposit}
                 onClick={() => deposit()} // Open the Confirm popup
               >
-                deposit
+                deposit tasks.
+              </Button>
+            </GridRow>
+            <GridRow>
+              <Button
+                primary
+                loading={isaddprojectE}
+                onClick={() => AddProjectE()} // Open the Confirm popup
+              >
+                Add Task reply
               </Button>
             </GridRow>
           </Grid>

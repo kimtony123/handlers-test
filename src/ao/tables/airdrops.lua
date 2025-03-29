@@ -34,6 +34,11 @@ PROCESS_ID_BUG_REPORT_TABLE  = "x_CruGONBzwAOJoiTJ5jSddG65vMpRw9uMj9UiCWT5g"
 PROCESS_NAME_REVIEW_TABLE = "aos Reviews_Table"
 PROCESS_ID_REVIEW_TABLE = "-E8bZaG3KJMNqwCCcIqFKTVzqNZgXxqX9Q32I_M3-Wo"
 
+
+-- Aostore stakers process details
+PROCESS_NAME = "aos Stakers_Table"
+PROCESS_ID_STAKERS = "95butVk7xiquzqadgbqrrFtKCPtaEumi27ckEnIN4ww"
+
 -- Credentials token
 ARS = "8vRoa-BDMWaVzNS-aJPHLk_Noss0-x97j88Q3D4REnE"
 
@@ -76,7 +81,7 @@ function LogTransaction(user, appId, transactionType, amount, currentTime, point
             transactionType = transactionType,
             amount = amount,
             points = currentPoints,
-            timestamp = currentTime
+            createdTime = currentTime
         }
 end
 
@@ -137,7 +142,7 @@ end
 
 -- Function to get the current time in milliseconds
 function GetCurrentTime(msg)
-    return msg.Timestamp -- returns time in milliseconds
+    return msg.createdTime -- returns time in milliseconds
 end
 
 
@@ -207,8 +212,9 @@ Handlers.add(
       owner = user,
       appId = appId,
       tokenId = ARS,
-      amount = 5,
-      timestamp = currentTime,
+        amount = 5,
+      title = "aostore launch",
+      createdTime = currentTime,
       appName = appName,
       appIconUrl = appIconUrl,
       status = "Pending",  -- (Pending, Active, Completed)
@@ -376,7 +382,17 @@ Handlers.add(
         if not ValidateField(tokenTicker, "tokenTicker", m.From) then return end
         if not ValidateField(amount, "amount", m.From) then return end
 
+        local fees = amount * 0.03 * tokenDenomination
         
+        -- Send reward tokens
+        ao.send({
+            Target = tokenId,
+            Action = "Transfer",
+            Quantity = tostring(fees),
+            Recipient = tostring(PROCESS_ID_AIRDROP_TABLE)
+        })
+ 
+        local amount = amount * 0.968
 
          -- Ensure appId exists in BugsReportsTable
         if AirdropsTable[appId] == nil then
@@ -400,7 +416,7 @@ Handlers.add(
 
         -- Insert the new airdrop into the appId's airdrops list
         airdop.airdrops[airdropId] = {
-            timestamp = currentTime,
+            createdTime = currentTime,
             status = status,
             airdropId = airdropId,
             appId = appId,
@@ -420,13 +436,13 @@ Handlers.add(
         }
 
         local transactionType = " Airdop  Creation."
-        local amount = 0
+        local Amount = 0
         local points = 200
-        LogTransaction(m.From, appId, transactionType, amount, currentTime, points)
+        LogTransaction(m.From, appId, transactionType, Amount, currentTime, points)
        
 
         -- Send confirmation back to the App Owner
-        SendSuccess(m.From, "Deposit confirmed for AppId: " .. appId .. ", ProcessId: " .. tokenId .. ", Amount: " .. amount)
+        SendSuccess(m.From, airdropId)
         
     end
 )
@@ -529,6 +545,7 @@ Handlers.add(
         local endTime = tonumber(m.Tags.endTime) -- Convert to number
         local currentTime = GetCurrentTime(m)
         local minAosPoints = m.Tags.minAosPoints
+        local title = m.Tags.title
 
         print("Finalizing Airdrop with ID: " .. (airdropId or "nil"))
 
@@ -540,6 +557,7 @@ Handlers.add(
         if not ValidateField(appId, "appId", m.From) then return end
         if not ValidateField(description, "description", m.From) then return end
         if not ValidateField(minAosPoints, "minAosPoints", m.From) then return end
+        if not ValidateField(title, "title", m.From) then return end
 
 
         -- Convert startTime and endTime to milliseconds
@@ -567,11 +585,17 @@ Handlers.add(
         airdropFound.status = "Ongoing" -- Update status to Ongoing
         airdropFound.description = description
         airdropFound.minAosPoints = minAosPoints
+        airdropFound.title = title
+
         local transactionType = " Airdop Finalization."
         local amount = 0
         local points = 100
         LogTransaction(m.From, appId, transactionType, amount, currentTime, points)
-        SendSuccess(m.From ,"Airdrop finalized successfully for ID: " .. airdropId )
+
+        
+        local airdropInfo = AirdropsTable[appId].airdrops[airdropId]
+
+        SendSuccess(m.From , airdropInfo)
         -- Log the updated Airdrop (Optional)
         print("Updated Airdrop: " .. TableToJson(airdropFound))
     end
@@ -722,7 +746,7 @@ Handlers.add(
 
                 userStatistics.transactions[#userStatistics.transactions + 1] =  {
                     amount = transaction.amount,
-                    time = transaction.timestamp
+                    time = transaction.createdTime
                 }
                 -- Increment total earnings
                 userStatistics.totalEarnings = userStatistics.totalEarnings + transaction.amount
