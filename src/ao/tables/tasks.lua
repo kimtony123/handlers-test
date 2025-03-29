@@ -831,13 +831,13 @@ Handlers.add(
         if not ValidateField(taskId, "taskId", m.From) then return end
         if not ValidateField(appId, "appId", m.From) then return end
 
-        if TaskTable[appId].requests[taskId]  == nil then
+        if TaskTable[appId].tasks[taskId]  == nil then
             SendFailure(m.From, "task does not exists for that AppId..")
             return
         end
 
         -- Check if the Airdrop exists
-        local taskInfo = TaskTable[appId].requests[taskId]
+        local taskInfo = TaskTable[appId].tasks[taskId]
         
 
         SendSuccess(m.From ,taskInfo)
