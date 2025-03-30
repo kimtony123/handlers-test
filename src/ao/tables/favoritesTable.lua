@@ -23,6 +23,8 @@ FavoritesTable = FavoritesTable or {}
 AosPoints  = AosPoints or {}
 Transactions = Transactions or {}
 Tickets  = Tickets or {}
+SentBoxTable  = SentBoxTable or {}
+InboxTableX = InboxTableX or {}
 
 -- counters variables
 TransactionCounter  = TransactionCounter or 0
@@ -427,7 +429,7 @@ Handlers.add(
         local message = m.Tags.message
         local title = m.Tags.title
         local link = m.Tags.link
-        local user = m.From
+        local sender = m.From
         local currentTime = GetCurrentTime(m) -- Ensure you have a function to get the current timestamp
         local messageId = GenerateMessageId()
 
@@ -447,10 +449,11 @@ Handlers.add(
 
         print ("owner :" ..FavoritesTable[appId].owner )
 
-         print ("user :" .. user )
+         print ("user :" .. sender )
 
-        if not  FavoritesTable[appId].owner ~= user  then
+        if not FavoritesTable[appId].owner ~= sender  then
            SendFailure(m.From, "Only the app owner can send messages.")
+           return
        end
 
         -- Check if the app has any favorites
@@ -461,30 +464,22 @@ Handlers.add(
            return
         end
 
+
         -- Send the message to each user's inbox
         for userId, _ in pairs(favorites.users) do
             -- Function to initialize a user's inbox if it doesn't exist
-
-
-            InboxTable[userId] = InboxTable[userId] or {}
-            SentBoxTable[user] = SentBoxTable[user] or {}
-          
-            if InboxTable[userId] == nil then
-                InboxTable[userId] = {
-                        messages = {}, -- Messages stored as { [MessageId] = messageData }
-                        UnreadMessages = 0 }
-            end
-           
-            if SentBoxTable[user] == nil then
-                    SentBoxTable[user] = {
-                        messages = {}, -- Messages stored as { [MessageId] = messageData }
-                        SentMessages = 0 -- Counter for unread messages
-                    }
-                end
             
-            
-            InboxTable[userId].messages[messageId] =
-            {
+            -- Function to initialize a user's inbox if it doesn't exist
+             local function initializeUserInbox(userId)
+                InboxTableX[userId] = InboxTableX[userId] or {}
+                InboxTableX[userId].messages = InboxTableX[userId].messages or {}
+                InboxTableX[userId].UnreadMessages = InboxTableX[userId].UnreadMessages or 0
+
+             end
+ 
+             initializeUserInbox(userId)
+ 
+            local message =  {
                 appId = appId,
                 messageId = messageId,
                 read = false,
@@ -494,27 +489,31 @@ Handlers.add(
                 title = title,
                 link = link,
                 currentTime = currentTime
-            }
-
-            local UnreadMessages = InboxTable[userId].UnreadMessages
-
-            UnreadMessages = UnreadMessages + 1
-
-            SentBoxTable[user].messages[messageId] =
-            {
-                appId = appId,
-                messageId = messageId,
-                read = false,
-                appName = appDetails.appName,
-                appIconUrl = appDetails.appIconUrl,
-                message = message,
-                title = title,
-                link = link,
-                currentTime = currentTime
-            }
-            local SentMessages = SentBoxTable[user].SentMessages
-            SentMessages =  SentMessages + 1 
+             }
+        
+            InboxTableX[userId].messages[messageId] = message
+            InboxTableX[userId].UnreadMessages = InboxTableX[userId].UnreadMessages + 1
         end
+
+
+        SentBoxTable[sender] = SentBoxTable[sender] or {}
+        SentBoxTable[sender].messages = SentBoxTable[sender].messages or {}
+        SentBoxTable[sender].SentMessages = SentBoxTable[sender].SentMessages or 0
+
+        local message = {
+                appId = appId,
+                messageId = messageId,
+                read = false,
+                appName = appDetails.appName,
+                appIconUrl = appDetails.appIconUrl,
+                message = message,
+                title = title,
+                link = link,
+                currentTime = currentTime
+             }
+
+        SentBoxTable[sender].messages[messageId] = message
+        SentBoxTable[sender].SentMessages = SentBoxTable[sender].SentMessages  + 1
 
         local transactionType = "Sent Message"
         local amount = 0
@@ -1002,22 +1001,31 @@ Handlers.add(
 
 
 
+ 
+
 Handlers.add(
     "GetUserInbox",
     Handlers.utils.hasMatchingTag("Action", "GetUserInbox"),
     function(m)
         local userId = m.From
 
-        -- Check if the user has any messages in their inbox
-        local userInbox = InboxTable[userId] or {}
-        if userInbox == nil then
-            SendFailure(m.From , "You dont have any messages.")
-           return
-        end
+         print ("userId :" .. userId )
+        -- Initialize the user's inbox if it doesn't exist
+        InboxTableX[userId] = InboxTableX[userId] or {}
 
-        -- Send success message
-         SendSuccess(m.From , userInbox)
-        end
+        print ("InboxTableX :" .. json.encode(InboxTableX[userId]))
+        InboxTableX[userId].messages = InboxTableX[userId].messages  or {}
+
+        print ("InboxTableXmessages :" .. json.encode(InboxTableX[userId].messages))
+        InboxTableX[userId].UnreadMessages = InboxTableX[userId].UnreadMessages or 0
+ 
+        print ("InboxTableXUnreadmessages :" .. json.encode(InboxTableX[userId].unreadMessages))
+        -- Fetch the user's messages
+        local userInbox = InboxTableX[userId].messages
+
+        -- Send success message with the inbox data
+        SendSuccess(m.From, userInbox)
+    end
 )
 
 Handlers.add(
@@ -1034,12 +1042,15 @@ Handlers.add(
            return
         end
 
-        local userMarked = InboxTable[userId].messages[messageId].Read
+        local userMarked = InboxTable[userId].messages[messageId].read
         if userMarked then
             SendFailure(m.From , "Already Marked Message as Read.")
            return
         end
         userMarked = true
+
+        InboxTable[userId].UnreadMessages = InboxTable[userId].UnreadMessages + 1
+
         -- Send success message
         SendSuccess(m.From , "Marked as Read succesfully")
     end
@@ -1051,12 +1062,13 @@ Handlers.add(
     function(m)
         local userId = m.From
 
+        InboxTableX[userId] = InboxTableX[userId] or {}
+        InboxTableX[userId].messages = InboxTableX[userId].messages or {}
+        InboxTableX[userId].UnreadMessages = InboxTableX[userId].UnreadMessages or 0
+
         -- Check if the user has any messages in their inbox
-        local userUnreadMessages = InboxTable[userId].UnreadMessages or 0
-        if userUnreadMessages == nil then
-            SendFailure(m.From , "You dont have any messages")
-            return
-        end
+        local userUnreadMessages = InboxTableX[userId].UnreadMessages 
+
         -- Return the user's unreadMessages as a JSON object
         SendSuccess(m.From ,userUnreadMessages )
        end
@@ -1064,18 +1076,28 @@ Handlers.add(
 
 
 Handlers.add(
-    "GetuserSentBox",
-    Handlers.utils.hasMatchingTag("Action", "GetuserSentBox"),
+    "GetUserSentBox",
+    Handlers.utils.hasMatchingTag("Action", "GetUserSentBox"),
     function(m)
         local userId = m.From
 
         -- Check if the user has any messages in their inbox
-        local userInbox = SentBoxTable[userId] or {}
+        local userInbox = SentBoxTable[userId].messages
 
-        if userInbox == nil then
-            SendFailure(m.From , "You dont have any messages in SentBox!.")
-        return
-        end
+        -- Return the user's unreadMessages as a JSON object
+        SendSuccess(m.From , userInbox)
+    end
+)
+
+Handlers.add(
+    "GetUserDm",
+    Handlers.utils.hasMatchingTag("Action", "GetUserDm"),
+    function(m)
+        local userId = m.From
+
+        -- Check if the user has any messages in their inbox
+        local userInbox = InboxTableX[userId].messages
+
         -- Return the user's unreadMessages as a JSON object
         SendSuccess(m.From , userInbox)
     end
@@ -1192,6 +1214,15 @@ Handlers.add(
         TransactionCounter  =  0
         FavoritesCounter = 0
         TicketCounter =  0
+    end
+)
+
+Handlers.add(
+    "ClearInboxSentBox",
+    Handlers.utils.hasMatchingTag("Action", "ClearInboxSentBox"),
+    function(m)
+        InboxTableX = {}
+        SentBoxTable  = {}
     end
 )
 

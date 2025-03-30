@@ -36,6 +36,7 @@ const addaoprojects = () => {
   const [isaddprojectC, setIsAddProjectC] = useState(false);
   const [isaddprojectD, setIsAddProjectD] = useState(false);
   const [isaddprojectE, setIsAddProjectE] = useState(false);
+  const [isaddprojectF, setIsAddProjectF] = useState(false);
   const [sendSuccess, setSuccess] = useState(false);
   const [loadingAirdrops, setLoadingAirdrops] = useState(true);
   const [depositAmount, setDepositAmount] = useState("");
@@ -320,6 +321,44 @@ const addaoprojects = () => {
     }
   };
 
+  const AddProjectF = async () => {
+    setIsAddProjectF(true);
+
+    const appId = "TX1";
+    const taskId = "PX1";
+    try {
+      const getTradeMessage = await message({
+        process: AIRDROP,
+        tags: [
+          { name: "Action", value: "FetchTaskInfo" },
+          { name: "appId", value: String(appId) },
+          { name: "taskId", value: String(taskId) },
+        ],
+        signer: createDataItemSigner(window.arweaveWallet),
+      });
+      const { Messages, Error } = await result({
+        message: getTradeMessage,
+        process: AIRDROP,
+      });
+
+      if (Error) {
+        console.log(Error);
+        alert("Error Adding Project:" + Error);
+        return;
+      }
+      if (!Messages || Messages.length === 0) {
+        alert("No messages were returned from ao. Please try later.");
+        return;
+      }
+      const data = Messages[Messages.length - 1]?.Data; // Get the last message's data
+      console.log("Last message data:", data);
+    } catch (error) {
+      alert("There was an error in the trade process: " + error);
+    } finally {
+      setIsAddProjectF(false);
+    }
+  };
+
   return (
     <div
       className={classNames(
@@ -367,6 +406,15 @@ const addaoprojects = () => {
                 onClick={() => AddProjectE()} // Open the Confirm popup
               >
                 Add Task reply
+              </Button>
+            </GridRow>
+            <GridRow>
+              <Button
+                primary
+                loading={isaddprojectF}
+                onClick={() => AddProjectF()} // Open the Confirm popup
+              >
+                GetTaskInfo
               </Button>
             </GridRow>
           </Grid>

@@ -12,5 +12,6 @@
     "AppTicketInboxTable",
     "GetOrInitializeUserPoints",
     "Inbox"
-  ]
+  ],
+  "Lua.diagnostics.disable": ["undefined-field"]
 }

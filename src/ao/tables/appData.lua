@@ -209,15 +209,55 @@ Handlers.add(
       return
     end
 
-   FinalizeProject(user, appId, appName, description, currentTime, username, profileUrl, protocol,
-                websiteUrl,
-                twitterUrl,
-                discordUrl,
-                coverUrl,
-                bannerUrls,
-                companyName,
-                appIconUrl,
-                projectType)
+    Apps = Apps or {}
+    Apps.apps = Apps.apps or {}
+
+    -- Ensure global tables are initialized
+    AosPoints = AosPoints or {}
+    Transactions = Transactions or {}
+
+        -- Create the aosPoints table for this AppId
+    AosPoints[appId] = {
+            appId = appId,
+            status = false,
+            totalPointsApp = 5,
+            count = 1,
+            countHistory = { { time = currentTime, count = 1 } },
+            users = {
+                [user] = { time = currentTime , points = 5 }
+            }
+    }
+
+  
+
+    Apps.apps[appId] = {
+    appId = appId,
+    owner = user,
+    appName = appName,
+    username = username,
+    description = description,
+    createdTime = currentTime,
+    protocol = protocol,
+    websiteUrl = websiteUrl,
+    twitterUrl = twitterUrl,
+    discordUrl = discordUrl,
+    coverUrl = coverUrl,
+    profileUrl = profileUrl,
+    bannerUrls = bannerUrls,
+    companyName = companyName,
+    appIconUrl = appIconUrl,
+    projectType = projectType,
+    AosPoints = AosPoints[appId]}
+
+    AosPoints[appId].status = true
+  -- Reset statuses and DataCount
+    ReviewStatus = false
+    DataCount = 0
+
+    local transactionType = "Project Creation."
+    local amount = 0
+    local points = 5
+    LogTransaction(user, appId, transactionType, amount, currentTime, points)
     
     local status = true
 

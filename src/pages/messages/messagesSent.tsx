@@ -119,25 +119,10 @@ const addaoprojects = () => {
   // In addproject function, use these values directly
   const AddProjectC = async () => {
     setIsAddProjectC(true);
-    const description = "I cant login using my apps.";
-    const profileUrl =
-      "https://pbs.twimg.com/media/Gh1cRRvXkAAXLSS?format=jpg&name=small";
-    const username = "Tony.";
-    const title = "login issues.";
-    const rank = "Oracle";
-    const appId = "TX1";
     try {
       const getTradeMessage = await message({
         process: AIRDROP,
-        tags: [
-          { name: "Action", value: "AskDevForum" },
-          { name: "appId", value: String(appId) },
-          { name: "username", value: String(username) },
-          { name: "profileUrl", value: String(profileUrl) },
-          { name: "description", value: String(description) },
-          { name: "title", value: String(title) },
-          { name: "rank", value: String(rank) },
-        ],
+        tags: [{ name: "Action", value: "GetUserInbox" }],
         signer: createDataItemSigner(window.arweaveWallet),
       });
       const { Messages, Error } = await result({
@@ -166,26 +151,11 @@ const addaoprojects = () => {
 
   const AddProjectD = async () => {
     setIsAddProjectD(true);
-    const appId = "TX1";
-    const description = "Use Othent.";
-    const profileUrl =
-      "https://pbs.twimg.com/media/Gh1cRRvXkAAXLSS?format=jpg&name=small";
-    const username = "aostore.";
-    const devForumId = "DX3";
-    const rank = "Oracle";
 
     try {
       const getTradeMessage = await message({
         process: AIRDROP,
-        tags: [
-          { name: "Action", value: "AddDevForumReply" },
-          { name: "appId", value: String(appId) },
-          { name: "devForumId", value: String(devForumId) },
-          { name: "rank", value: String(rank) },
-          { name: "username", value: String(username) },
-          { name: "profileUrl", value: String(profileUrl) },
-          { name: "description", value: String(description) },
-        ],
+        tags: [{ name: "Action", value: "GetUserSentBox" }],
         signer: createDataItemSigner(window.arweaveWallet),
       });
       const { Messages, Error } = await result({
@@ -294,7 +264,7 @@ const addaoprojects = () => {
       <div className="text-white flex flex-col items-center lg:items-start">
         <Container textAlign="center">
           <Header textAlign="center" as="h1">
-            DevForum.
+            Messages.
           </Header>
 
           <Grid textAlign="center">
@@ -313,7 +283,7 @@ const addaoprojects = () => {
                 loading={isaddprojectC}
                 onClick={() => AddProjectC()} // Open the Confirm popup
               >
-                AskDevForum
+                GetUserDm
               </Button>
             </GridRow>
             <GridRow>
@@ -322,7 +292,7 @@ const addaoprojects = () => {
                 loading={isaddprojectD}
                 onClick={() => AddProjectD()} // Open the Confirm popup
               >
-                AddDevForumReply
+                GetUserSentBox
               </Button>
             </GridRow>
             <GridRow>

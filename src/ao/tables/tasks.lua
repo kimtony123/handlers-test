@@ -163,7 +163,7 @@ Handlers.add(
         local appId = m.Tags.appId
         local user  = m.Tags.user
         local username = m.Tags.username
-        local profiledescription = m.Tags.profiledescription
+        local profileUrl = m.Tags.profileUrl
         local caller   = m.From
         local replyId  = GenerateReplyId()
         
@@ -171,7 +171,7 @@ Handlers.add(
         
 
         -- Field validation examples
-        if not ValidateField(profiledescription, "profiledescription", m.From) then return end
+        if not ValidateField(profileUrl, "profileUrl", m.From) then return end
         if not ValidateField(username, "username", m.From) then return end
         if not ValidateField(appId, "appId", m.From) then return end
         if not ValidateField(user, "user", m.From) then return end
@@ -197,7 +197,7 @@ Handlers.add(
             tasksAmount = 50000,
             taskerCount = 500,
             amountPerTask = 50000 / 500,
-            title = "Launched aostore",
+            title = "aostore tasks",
             tokenDenomination = 3 ,
             tokenId = ARS,
          completedRate = {
@@ -205,10 +205,11 @@ Handlers.add(
                         remainingTasks = 500-1},
             replies = {
                         [replyId] = {
+                            replyId = replyId,
                             username = username,
                             user = user ,
-                            profiledescription = profiledescription,
-                            description = "https://x.com/aoTheComputer",
+                            profileUrl = profileUrl,
+                            url = "https://x.com/aoTheComputer",
                             status = "Pending",
                             rank = "Architect",
                             completedTasks = {
@@ -536,8 +537,8 @@ Handlers.add(
         local appId = m.Tags.appId
         local taskId = m.Tags.taskId
         local username = m.Tags.username
-        local description = m.Tags.description
-        local profiledescription = m.Tags.profiledescription
+        local url = m.Tags.url
+        local profileUrl = m.Tags.profileUrl
         local providedRank = m.Tags.rank
         local user = m.From
         local currentTime = GetCurrentTime(m)
@@ -546,9 +547,9 @@ Handlers.add(
         
 
         if not ValidateField(appId, "appId", m.From) then return end
-        if not ValidateField(description, "description", m.From) then return end
+        if not ValidateField(url, "url", m.From) then return end
         if not ValidateField(username, "username", m.From) then return end
-        if not ValidateField(profiledescription, "profiledescription", m.From) then return end
+        if not ValidateField(profileUrl, "profileUrl", m.From) then return end
         if not ValidateField(taskId, "taskId", m.From) then return end
         if not ValidateField(providedRank, "providedRank", m.From) then return end
 
@@ -576,7 +577,7 @@ Handlers.add(
         -- Check if the user has already replied to this review
         if targetTasks.replies then
             for _, reply in ipairs(targetTasks.replies) do
-                if reply.description == description then
+                if reply.url == url then
                     local transactionType = "Replied twice using the same description"
                     local amount = 0
                     local points = -10
@@ -597,14 +598,14 @@ Handlers.add(
         TaskTable[appId].tasks[taskId].replies[replyId] =  {
             replyId = replyId,
             user = user ,
-            description = description,
+            url = url,
             status = "Pending",
             completedTasks = {
                             completed = false,
                             completedTime = currentTime,  -- When the task was completed
-                             proof = description,  -- Optional: Proof of completion (like a link or TX hash)
+                             proof = url,  -- Optional: Proof of completion (like a link or TX hash)
                              amount = amount},           
-            profiledescription = profiledescription,
+            profileUrl = profileUrl,
             rank = finalRank,
             username = username,
             createdTime = currentTime
