@@ -632,15 +632,9 @@ Handlers.add(
 
 
 Handlers.add(
-    "RankUsersX",
-    Handlers.utils.hasMatchingTag("Action", "RankUsersX"),
+    "RankUsersB",
+    Handlers.utils.hasMatchingTag("Action", "RankUsersB"),
     function(m)
-        -- Custom table size function
-        local function tableSize(t)
-            local count = 0
-            for _ in pairs(t) do count = count + 1 end
-            return count
-        end
 
         -- 1. Identify all users across all tables (even with zero/negative points)
         local allUsers = {}
@@ -703,7 +697,7 @@ Handlers.add(
         end
 
         -- 4. Assign ranks (now including negative points)
-        local Rankings = {
+        Rankings = {
             Oracle = {},
             Operator = {},
             RedPill = {},
@@ -728,10 +722,7 @@ Handlers.add(
         end
 
         -- 5. Enhanced response
-        local response = {
-            code = 200,
-            message = "success",
-            data = {
+        local data = {
                 all_users_count = #allUsers,
                 users_with_points_count = #userPoints,
                 rankings = Rankings,
@@ -745,108 +736,47 @@ Handlers.add(
                     redPillUsers = #Rankings.RedPill
                 }
             }
-        }
 
-        SendSuccess(m.From, response)
+        SendSuccess(m.From, data)
     end
 )
+
+
 Handlers.add(
-    "RankUsersZ",
-    Handlers.utils.hasMatchingTag("Action", "RankUsersZ"),
+    "GetUserRankA",
+    Handlers.utils.hasMatchingTag("Action", "GetUserRankA"),
     function(m)
-        -- Step 1: Aggregate total points for each user
-        local userPoints = {}
-        local totalUsers = 0
-
-        -- List of all AosPoints tables
-        local aosTables = {
-            AosPointsMain,
-            AosPointsAirdrops,
-            AosPointsBugReports,
-            AosPointsDevForum,
-            AosPointsFavorites,
-            AosPointsFeatures,
-            AosPointsFlags,
-            AosPointsHelpful,
-            AosPointsReviews,
-            AosPointsTasks
+        local userId = m.From
+        local response = {
+            user = userId,
+            rank = "BluePill",
+            points = 0,
+            found = false
         }
 
-        -- Iterate through all AosPoints tables
-        for _, aosTable in ipairs(aosTables) do
-            if type(aosTable) == "table" then
-                for appId, appData in pairs(aosTable) do
-                    if type(appData) == "table" and appData.users then
-                        for userId, userData in pairs(appData.users) do
-                            if type(userData) == "table" and type(userData.points) == "number" then
-                                userPoints[userId] = (userPoints[userId] or 0) + userData.points
-                                totalUsers = totalUsers + 1
-                            else
-                                print(string.format("Invalid user data for user %s in app %s", userId, appId))
-                            end
-                        end
-                    end
-                end
-            else
-                print(string.format("Warning: Invalid AosPoints table found: %s", type(aosTable)))
+        -- Check all ranking categories for the user
+        for category, users in pairs(Rankings or {}) do
+            if users[userId] then
+                response.rank = category
+                response.points = users[userId].points or 0
+                response.found = true
+                break
             end
         end
 
-        -- Step 2: Calculate total points across all users
-        local totalPoints = 0
-        for userId, points in pairs(userPoints) do
-            if type(points) == "number" then
-                totalPoints = totalPoints + points
-            else
-                print(string.format("Warning: Invalid points for user %s: %s", userId, type(points)))
-                userPoints[userId] = 0 -- Reset invalid points to 0
-            end
+        -- Final response formatting
+        if not response.found then
+
+            local newResponse = {
+            user = userId,
+            rank = "BluePill",
+            points = 0,
+            found = false}
+            SendSuccess(m.From, newResponse)
+            return
+        else
+            SendSuccess(m.From, response)
         end
-
-        -- Step 3: Assign ranks based on points
-        local Rankings = {
-            Oracle = {},
-            Operator = {},
-            RedPill = {},
-            BluePill = {}
-        }
-
-        for userId, points in pairs(userPoints) do
-            -- Ensure points is a valid number
-            points = tonumber(points) or 0
-
-            -- Add user to the appropriate rank with their points
-            if points <= 0 then
-                Rankings.BluePill[userId] = {points = points}
-            elseif totalPoints > 0 and (points / totalPoints) > 0.5 then
-                Rankings.Oracle[userId] = {points = points}
-            elseif totalPoints > 0 and (points / totalPoints) > 0.25 then
-                Rankings.Operator[userId] = {points = points}
-            else
-                Rankings.RedPill[userId] = {points = points}
-            end
-        end
-
-        -- Debug output
-        print(string.format("Ranking completed. Total users: %d, Total points: %d", totalUsers, totalPoints))
-    
-        -- Step 4: Prepare the response
-        local data = {
-                rankings = Rankings,
-                userPoints = userPoints,
-                stats = {
-                    totalUsers = totalUsers,
-                    totalPoints = totalPoints,
-                    oracleCount = #Rankings.Oracle,
-                    operatorCount = #Rankings.Operator,
-                    redPillCount = #Rankings.RedPill,
-                    bluePillCount = #Rankings.BluePill
-                }
-            }
-        
-
-        -- Send success response
-        SendSuccess(m.From, data)
     end
 )
 

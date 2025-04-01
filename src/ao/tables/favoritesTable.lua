@@ -429,6 +429,7 @@ Handlers.add(
         local message = m.Tags.message
         local title = m.Tags.title
         local link = m.Tags.link
+        local type = m.Tags.type
         local sender = m.From
         local currentTime = GetCurrentTime(m) -- Ensure you have a function to get the current timestamp
         local messageId = GenerateMessageId()
@@ -437,6 +438,7 @@ Handlers.add(
         if not ValidateField(message, "message", m.From) then return end
         if not ValidateField(title, "title", m.From) then return end
         if not ValidateField(link, "linkInfo", m.From) then return end
+         if not ValidateField(type, "type", m.From) then return end
 
 
         -- Verify that the app exists
@@ -488,6 +490,7 @@ Handlers.add(
                 message = message,
                 title = title,
                 link = link,
+                type  = type,
                 currentTime = currentTime
              }
         
@@ -509,7 +512,8 @@ Handlers.add(
                 message = message,
                 title = title,
                 link = link,
-                currentTime = currentTime
+                currentTime = currentTime,
+                type  = type,
              }
 
         SentBoxTable[sender].messages[messageId] = message

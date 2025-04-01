@@ -198,9 +198,9 @@ Handlers.add(
             taskerCount = 500,
             amountPerTask = 50000 / 500,
             title = "aostore tasks",
-            tokenDenomination = 3 ,
+            tokenDenomination = "3" ,
             tokenId = ARS,
-         completedRate = {
+            completedRate = {
                         completeCount = 1,
                         remainingTasks = 500-1},
             replies = {
@@ -366,7 +366,7 @@ Handlers.add(
     "FetchAppTasks",
     Handlers.utils.hasMatchingTag("Action", "FetchAppTasks"),
     function(m)
-        local appId = m.Tags.appId
+        local appId = "TX1"
 
          if not ValidateField(appId, "appId", m.From) then return end
 

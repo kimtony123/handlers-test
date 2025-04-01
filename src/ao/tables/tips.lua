@@ -67,7 +67,7 @@ end
 
 
 -- Helper function to log  Tip transactions
-function LogTipsTransaction(user, appId, transactionType, amount, currentTime,points,appName,appIconUrl)
+function LogTipsTransaction(user, appId, transactionType, amount, currentTime,points,appName,logo)
     local transactionId = GenerateTipTransactionId()
     AosPoints[appId].users[user] = AosPoints[appId].users[user].points + points
     local currentPoints = AosPoints[appId].users[user] or 0 -- Add error handling if needed
@@ -79,7 +79,7 @@ function LogTipsTransaction(user, appId, transactionType, amount, currentTime,po
             points = currentPoints,
             timestamp = currentTime,
             appName = appName,
-            appIconUrl = appIconUrl
+            logo = logo
         }
 end
 
@@ -145,6 +145,26 @@ function GetBalance(userId, tokenProcessId)
 end
 
 
+function TableToJson(tbl)
+    local result = {}
+    for key, value in pairs(tbl) do
+        local valueType = type(value)
+        if valueType == "table" then
+            value = TableToJson(value)
+            table.insert(result, string.format('"%s":%s', key, value))
+        elseif valueType == "string" then
+            table.insert(result, string.format('"%s":"%s"', key, value))
+        elseif valueType == "number" then
+            table.insert(result, string.format('"%s":%d', key, value))
+        elseif valueType == "function" then
+            table.insert(result, string.format('"%s":"%s"', key, tostring(value)))
+        end
+    end
+
+    local json = "{" .. table.concat(result, ",") .. "}"
+    return json
+end
+
 Handlers.add(
     "AddTipsTable",
     Handlers.utils.hasMatchingTag("Action", "AddTipsTable"),
@@ -154,7 +174,7 @@ Handlers.add(
         local appName = m.Tags.appName
         local caller = m.From
         local user = m.Tags.user
-        local appIconUrl = m.Tags.appIconUrl
+        local logo = m.Tags.logo
         local tokenId = m.Tags.tokenId
         local tokenName = m.Tags.tokenName
         local tokenTicker = m.Tags.ticker
@@ -170,7 +190,7 @@ Handlers.add(
        -- if not ValidateField(tokenName, "tokenName", m.From) then return end
       --  if not ValidateField(tokenDenomination, "tokenDenomination", m.From) then return end
        -- if not ValidateField(tokenTicker, "tokenTicker", m.From) then return end
-        if not ValidateField(appIconUrl, "appIconUrl", m.From) then return end
+        if not ValidateField(logo, "logo", m.From) then return end
         if not ValidateField(user, "user", m.From) then return end
 
 
@@ -182,7 +202,7 @@ Handlers.add(
         Tokens[appId] ={
             owner = user,
             appName = appName,
-            appIconUrl = appIconUrl,
+            logo = logo,
             tokenDenomination =  tokenDenomination ,
             tokenTicker =  tokenTicker ,
             tokenName = tokenName,
@@ -318,8 +338,8 @@ Handlers.add(
         local currentTime = GetCurrentTime(m) -- Ensure you have a function to get the current timestamp
         local tokenId = m.Tags.tokenId
         local tokenName = m.Tags.tokenName
-        local tokenTicker = m.Tags.ticker
-        local tokenDenomination = m.Tags.denomination
+        local tokenTicker = m.Tags.tokenTicker
+        local tokenDenomination = m.Tags.tokenDenomination
 
         if not ValidateField(tokenId, "tokenId", m.From) then return end
         if not ValidateField(tokenName, "tokenName", m.From) then return end
@@ -512,12 +532,12 @@ Handlers.add(
             return SendFailure(user, "Invalid appId: Token data not found")
         end
 
-        local appIconUrl = tokenData.appIconUrl
+        local logo = tokenData.logo
         local appName = tokenData.appName
         local transactionType = "Project Creation."
         local amount = amount 
         local points = 5
-        LogTipsTransaction(user, appId, transactionType, amount, currentTime,points,appName,appIconUrl)
+        LogTipsTransaction(user, appId, transactionType, amount, currentTime,points,appName,logo)
     end
 )
 
@@ -545,14 +565,14 @@ Handlers.add(
             if transaction.user == userId then
                 -- Extract token details
                 local appName = transaction.appName
-                local appIconUrl = transaction.appIconUrl
+                local logo = transaction.logo
                 local amount = transaction.amount
 
                 -- Initialize token entry if it doesn't exist
                 if  userStatistics.tokens[appName] == nil then
                     userStatistics.tokens[appName] = {
                         appName = appName,
-                        appIconUrl = appIconUrl,
+                        logo = logo,
                         totalEarnings = 0,
                         transactions = {}
                     }
