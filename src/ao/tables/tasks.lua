@@ -366,7 +366,7 @@ Handlers.add(
     "FetchAppTasks",
     Handlers.utils.hasMatchingTag("Action", "FetchAppTasks"),
     function(m)
-        local appId = "TX1"
+        local appId = m.Tags.appId
 
          if not ValidateField(appId, "appId", m.From) then return end
 

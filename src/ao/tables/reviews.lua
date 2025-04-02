@@ -49,6 +49,30 @@ function TableToJson(tbl)
 end
 
 
+
+function GenerateRatingsChart(ratingsTableEntry)
+    -- Initialize a table to store the ratings count
+    local ratingsData = { [1] = 0, [2] = 0, [3] = 0, [4] = 0, [5] = 0 }
+
+    -- Ensure countHistory exists and process it
+    if ratingsTableEntry and ratingsTableEntry.countHistory then
+        for _, record in ipairs(ratingsTableEntry.countHistory) do
+            -- Validate and update ratings
+            local rating = record.rating
+            if ratingsData[rating] ~= nil then
+                ratingsData[rating] = ratingsData[rating] + 1
+            else
+                print("Invalid rating found:", rating)
+            end
+        end
+    else
+        print("Invalid or missing countHistory in ratingsTableEntry")
+    end
+
+    return ratingsData
+end
+ 
+
 -- Function to get the current time in milliseconds
 function GetCurrentTime(msg)
     return msg.Timestamp -- returns time in milliseconds
@@ -384,11 +408,38 @@ Handlers.add(
 
 
 Handlers.add(
+    "FetchAppRatings",
+    Handlers.utils.hasMatchingTag("Action", "FetchAppRatings"),
+    function(m)
+
+        local appId = m.Tags.appId
+
+
+        if not ValidateField(appId, "appId", m.From) then return end
+
+        
+        -- Ensure appId exists in ReviewsTable
+        if ReviewsTable[appId].ratings == nil then
+            SendFailure(m.From ,"App doesnt exist for  specified " )
+            return
+        end
+
+        local ratingsData = ReviewsTable[appId].ratings
+        
+        local ratingsInfo  = GenerateRatingsChart(ratingsData)
+
+       SendSuccess(m.From , ratingsInfo)
+
+    end
+)
+
+
+Handlers.add(
     "TransferAppOwnership",
     Handlers.utils.hasMatchingTag("Action", "TransferAppOwnership"),
     function(m)
         local appId = m.Tags.appId
-        local newOwner = m.Tags.NewOwner
+        local newOwner = m.Tags.newOwner
         local caller = m.From
         local currentTime = m.Tags.currentTime
         local currentOwner = m.Tags.currentOwner
@@ -471,6 +522,28 @@ Handlers.add(
         local reviewInfo = { reviewsCount = reviewsCount,ratingsCount = ratingsCount, totalRatings = totalRatings}
 
         SendSuccess(m.From , reviewInfo)
+    end
+)
+
+
+Handlers.add(
+    "FetchAppReviewsCount",
+    Handlers.utils.hasMatchingTag("Action", "FetchAppReviewsCount"),
+    function(m)
+        local appId = m.Tags.appId
+
+         if not ValidateField(appId, "appId", m.From) then return end
+
+        -- Ensure appId exists in ReviewsTable
+         if ReviewsTable[appId] == nil then
+             SendFailure(m.From , "App not Found.")
+            return
+        end
+
+        local reviewsCount = ReviewsTable[appId].count or 0
+
+
+        SendSuccess(m.From , reviewsCount)
     end
 )
 

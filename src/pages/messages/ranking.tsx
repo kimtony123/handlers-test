@@ -75,21 +75,11 @@ const addaoprojects = () => {
   // In addproject function, use these values directly
   const addProjectB = async () => {
     setIsAddProjectB(true);
-    const appId = "TX1";
-    const messageX = "Welcome to aostore.";
-    const title = "Welcoming message.";
-    const link = "https://aostore-orpin.vercel.app/";
 
     try {
       const getTradeMessage = await message({
         process: AIRDROP,
-        tags: [
-          { name: "Action", value: "SendMessage" },
-          { name: "appId", value: String(appId) },
-          { name: "message", value: String(messageX) },
-          { name: "title", value: String(title) },
-          { name: "link", value: String(link) },
-        ],
+        tags: [{ name: "Action", value: "GetUserRank" }],
         signer: createDataItemSigner(window.arweaveWallet),
       });
       const { Messages, Error } = await result({

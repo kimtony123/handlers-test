@@ -560,10 +560,6 @@ Handlers.add(
         if not ValidateField(title, "title", m.From) then return end
 
 
-        -- Convert startTime and endTime to milliseconds
-        startTime = startTime * 1000
-        endTime = endTime * 1000
-
         -- Validate that endTime is greater than startTime
         if endTime <= startTime then
             SendFailure(m.From , "EndTime must be greater than StartTime." )

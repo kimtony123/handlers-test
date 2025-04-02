@@ -419,8 +419,6 @@ Handlers.add(
 
 
 
-
-
 Handlers.add(
     "SendMessage",
     Handlers.utils.hasMatchingTag("Action", "SendMessage"),
@@ -429,7 +427,7 @@ Handlers.add(
         local message = m.Tags.message
         local title = m.Tags.title
         local link = m.Tags.link
-        local type = m.Tags.type
+        local messageType = m.Tags.messageType
         local sender = m.From
         local currentTime = GetCurrentTime(m) -- Ensure you have a function to get the current timestamp
         local messageId = GenerateMessageId()
@@ -437,8 +435,8 @@ Handlers.add(
         if not ValidateField(appId, "appId", m.From) then return end
         if not ValidateField(message, "message", m.From) then return end
         if not ValidateField(title, "title", m.From) then return end
-        if not ValidateField(link, "linkInfo", m.From) then return end
-         if not ValidateField(type, "type", m.From) then return end
+     --   if not ValidateField(link, "linkInfo", m.From) then return end
+         if not ValidateField( messageType, "messageType", m.From) then return end
 
 
         -- Verify that the app exists
@@ -453,7 +451,7 @@ Handlers.add(
 
          print ("user :" .. sender )
 
-        if not FavoritesTable[appId].owner ~= sender  then
+        if FavoritesTable[appId].owner ~= sender  then
            SendFailure(m.From, "Only the app owner can send messages.")
            return
        end
@@ -490,7 +488,7 @@ Handlers.add(
                 message = message,
                 title = title,
                 link = link,
-                type  = type,
+                messageType  =  messageType,
                 currentTime = currentTime
              }
         
@@ -513,7 +511,7 @@ Handlers.add(
                 title = title,
                 link = link,
                 currentTime = currentTime,
-                type  = type,
+                 messageType  =  messageType,
              }
 
         SentBoxTable[sender].messages[messageId] = message
@@ -1004,6 +1002,49 @@ Handlers.add(
 )
 
 
+Handlers.add(
+    "FetchFavoritesCount",
+    Handlers.utils.hasMatchingTag("Action", "FetchFavoritesCount"),
+    function(m)
+        local appId = m.Tags.appId
+
+         if not ValidateField(appId, "appId", m.From) then return end
+
+        -- Ensure appId exists in ReviewsTable
+         if FavoritesTable[appId] == nil then
+             SendFailure(m.From , "App not Found.")
+            return
+        end
+
+        local favoritesCount = FavoritesTable[appId].count
+
+
+        SendSuccess(m.From , favoritesCount)
+    end
+)
+
+
+
+Handlers.add(
+    "FetchFavoritesCountHistory",
+    Handlers.utils.hasMatchingTag("Action", "FetchFavoritesCountHistory"),
+    function(m)
+        local appId = m.Tags.appId
+
+         if not ValidateField(appId, "appId", m.From) then return end
+
+        -- Ensure appId exists in ReviewsTable
+         if FavoritesTable[appId] == nil then
+             SendFailure(m.From , "App not Found.")
+            return
+        end
+
+        local favoritesCountHistory = FavoritesTable[appId].countHistory
+
+
+        SendSuccess(m.From , favoritesCountHistory)
+    end
+)
 
  
 
@@ -1023,9 +1064,11 @@ Handlers.add(
         print ("InboxTableXmessages :" .. json.encode(InboxTableX[userId].messages))
         InboxTableX[userId].UnreadMessages = InboxTableX[userId].UnreadMessages or 0
  
-        print ("InboxTableXUnreadmessages :" .. json.encode(InboxTableX[userId].unreadMessages))
+        print ("InboxTableXUnreadmessages :" .. json.encode(InboxTableX[userId].UnreadMessages))
         -- Fetch the user's messages
         local userInbox = InboxTableX[userId].messages
+
+         print ("messages :" .. json.encode(userInbox))
 
         -- Send success message with the inbox data
         SendSuccess(m.From, userInbox)
@@ -1039,21 +1082,23 @@ Handlers.add(
         local userId = m.From
         local messageId = m.Tags.messageId
 
-        -- Check if the user has any messages in their inbox
-        local userInbox = InboxTable[userId].messages[messageId]
-        if userInbox == nil then
-            SendFailure(m.From , "message does not exist")
-           return
-        end
 
-        local userMarked = InboxTable[userId].messages[messageId].read
+        if not ValidateField(messageId, "messageId", m.From) then return end
+
+
+        InboxTableX[userId] = InboxTableX[userId] or {}
+        InboxTableX[userId].messages = InboxTableX[userId].messages  or {}
+        InboxTableX[userId].UnreadMessages = InboxTableX[userId].UnreadMessages or 0
+
+
+        local userMarked = InboxTableX[userId].messages[messageId].read
         if userMarked then
             SendFailure(m.From , "Already Marked Message as Read.")
            return
         end
         userMarked = true
 
-        InboxTable[userId].UnreadMessages = InboxTable[userId].UnreadMessages + 1
+        InboxTableX[userId].UnreadMessages = InboxTableX[userId].UnreadMessages - 1
 
         -- Send success message
         SendSuccess(m.From , "Marked as Read succesfully")
@@ -1085,8 +1130,15 @@ Handlers.add(
     function(m)
         local userId = m.From
 
+        
+        SentBoxTable[userId] = SentBoxTable[userId] or {}
+        SentBoxTable[userId].messages = SentBoxTable[userId].messages or {}
+        SentBoxTable[userId].SentMessages = SentBoxTable[userId].SentMessages or 0
+
+        
         -- Check if the user has any messages in their inbox
         local userInbox = SentBoxTable[userId].messages
+
 
         -- Return the user's unreadMessages as a JSON object
         SendSuccess(m.From , userInbox)

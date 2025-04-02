@@ -185,13 +185,13 @@ Handlers.add(
             return
         end
 
-        if not ValidateField(appName, "appName", m.From) then return end
+       -- if not ValidateField(appName, "appName", m.From) then return end
         --if not ValidateField(tokenId, "tokenId", m.From) then return end
        -- if not ValidateField(tokenName, "tokenName", m.From) then return end
       --  if not ValidateField(tokenDenomination, "tokenDenomination", m.From) then return end
        -- if not ValidateField(tokenTicker, "tokenTicker", m.From) then return end
-        if not ValidateField(logo, "logo", m.From) then return end
-        if not ValidateField(user, "user", m.From) then return end
+        --if not ValidateField(logo, "logo", m.From) then return end
+        --if not ValidateField(user, "user", m.From) then return end
 
 
         -- Ensure global tables are initialized
@@ -391,6 +391,16 @@ Handlers.add(
   
         if not Tokens[appId] then
             SendFailure(m.From, "App not found...")
+            return
+        end
+
+        if Tokens[appId].tokenId == nil then
+            SendSuccess(user, {})
+            return
+        end
+        
+          if Tokens[appId].tokenName == nil then
+             SendSuccess(user , {})   
             return
         end
 

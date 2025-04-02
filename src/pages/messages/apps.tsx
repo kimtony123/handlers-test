@@ -62,7 +62,7 @@ const addaoprojects = () => {
 
   const addProjectA = async () => {
     setIsAddProject(true);
-    const appName = "ao";
+    const appName = "aox";
     const description = "The hyper parallel computer is here";
     const protocol = "Arweave";
     const profileUrl =

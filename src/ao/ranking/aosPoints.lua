@@ -7,6 +7,12 @@ local math = require("math")
 PROCESS_NAME = "aos AosPoints"
 PROCESS_ID_ = "vv8WuNF3bD9MG9tL4zguinQSobFFLDGQJtw_-yyoVl0"
 
+
+-- AOS Token process details.
+PROCESS_NAME = "aos Aostore_Token"
+PROCESS_ID_AOS_TOKEN = "u2-XxndlJvyjDXU1uurYD8CTf3kehwDGEuSmTOyJwrU"
+
+
 AOS_POINTS = "vv8WuNF3bD9MG9tL4zguinQSobFFLDGQJtw_-yyoVl0"
 
 -- Main  process details.
@@ -21,6 +27,7 @@ PROCESS_ID_REVIEW_TABLE = "-E8bZaG3KJMNqwCCcIqFKTVzqNZgXxqX9Q32I_M3-Wo"
 -- Bug Reports Table process
 PROCESS_NAME_BUG_REPORT_TABLE = "aos Bug_Report_Table"
 PROCESS_ID_BUG_REPORT_TABLE  = "x_CruGONBzwAOJoiTJ5jSddG65vMpRw9uMj9UiCWT5g"
+
 
 
 -- Helpful Table process
@@ -86,6 +93,7 @@ Transactions  = Transactions or {}
 
 Rankings = Rankings or {}
 
+AosPointsBalance = AosPointsBalance or {}
 AosPoints = AosPoints or {}
 -- Counters variables 
 AppCounter  = AppCounter or 0
@@ -743,14 +751,14 @@ Handlers.add(
 
 
 Handlers.add(
-    "GetUserRankA",
-    Handlers.utils.hasMatchingTag("Action", "GetUserRankA"),
+    "GetUserRank",
+    Handlers.utils.hasMatchingTag("Action", "GetUserRank"),
     function(m)
         local userId = m.From
         local response = {
             user = userId,
-            rank = "BluePill",
-            points = 0,
+            rank = "BluePill",  -- Default rank
+            points = 0,         -- Default points
             found = false
         }
 
@@ -758,105 +766,85 @@ Handlers.add(
         for category, users in pairs(Rankings or {}) do
             if users[userId] then
                 response.rank = category
-                response.points = users[userId].points or 0
+                -- Handle both formats: direct value (number) or table with points field
+                response.points = type(users[userId]) == "number" and users[userId] or (users[userId].points or 0)
                 response.found = true
                 break
             end
         end
 
-        -- Final response formatting
-        if not response.found then
+        -- Send response (no need for separate found/not found cases)
+        SendSuccess(m.From, response)
+    end
+)
 
-            local newResponse = {
-            user = userId,
-            rank = "BluePill",
-            points = 0,
-            found = false}
-            SendSuccess(m.From, newResponse)
+
+
+Handlers.add(
+    "SwapToAosTokens",
+    Handlers.utils.hasMatchingTag("Action", "SwapToAosTokens"),
+    function(m)
+        local userId = m.From
+        local pointsToSwap = tonumber(m.Tags.Points) -- Case-sensitive tag
+
+        -- ===== VALIDATION CHECKS =====
+        -- 1. Validate points input
+        if not pointsToSwap or pointsToSwap <= 0 then
+            SendFailure(m.From, "Invalid points amount. Must be a positive number.")
             return
-        else
-            SendSuccess(m.From, response)
         end
-    end
-)
 
-Handlers.add(
-    "GetUserRank",
-    Handlers.utils.hasMatchingTag("Action", "GetUserRank"),
-    function(m)
-        local userId = m.From
+        -- 2. Check user's current points balance (from your Rankings system)
+        local userPoints = 0
+        for _, category in pairs(Rankings or {}) do
+            if category[userId] then
+                userPoints = type(category[userId]) == "number" 
+                    and category[userId] 
+                    or (category[userId].points or 0)
+                break
+            end
+        end
 
-        -- Step 1: Default rank and points
-        local rank = "BluePill" -- Default rank
-        local totalPoints = 0  -- Default points
+        -- 3. Verify sufficient balance
+        if userPoints < pointsToSwap then
+            SendFailure(m.From, string.format(
+                "Insufficient balance. You have %d points but requested %d.",
+                userPoints,
+                pointsToSwap
+            ))
+            return
+        end
 
-        -- Step 2: Check if Rankings table exists and find the user's rank
-        if Rankings then
-            for category, users in pairs(Rankings) do
-                for _, id in ipairs(users) do
-                    if id == userId then
-                        rank = category
-                        break
-                    end
+        -- ===== PROCESS SWAP =====
+        -- 1. Calculate token amount (adjust conversion rate as needed)
+        local conversionRate = 0.05  -- 1000 points = 50 tokens
+        local tokensToReceive = pointsToSwap * 1000 * conversionRate
+
+        -- 2. Deduct points from user (pseudo-code - update your actual storage)
+        -- This assumes you have a way to update Rankings globally
+        for _, category in pairs(Rankings) do
+            if category[userId] then
+                if type(category[userId]) == "number" then
+                    category[userId] = category[userId] - pointsToSwap
+                else
+                    category[userId].points = category[userId].points - pointsToSwap
                 end
+                break
             end
         end
 
-        -- Step 3: Calculate total points for the user (if they exist in AosPointsMain)
-        if AosPointsMain then
-            for _, appData in pairs(AosPointsMain) do
-                totalPoints = totalPoints + (appData.users[userId] or 0)
-            end
-        end
-
-        -- Step 4: Prepare rank information
-        local rankInfo = {
-            rank = rank,
-            aosPoints = totalPoints
-        }
-
-        -- Step 5: Send response
-        SendSuccess(m.From, rankInfo)
-    end
-)
-
-
-Handlers.add(
-    "SwappedToAos",
-    Handlers.utils.hasMatchingTag("Action", "SwappedToAos"),
-    function(m)
-        local userId = m.From
-        local pointsDeducted = m.Tags.points
-
-        -- Step 1: Default points.
-        local totalPoints = 0  -- Default points
-
-        -- Step 3: Calculate total points for the user (if they exist in AosPointsMain)
-        if AosPointsMain then
-            for _, appData in pairs(AosPointsMain) do
-                totalPoints = totalPoints + (appData.users[userId] or 0)
-            end
-        end
-
-
-        local amount = pointsDeducted *1000 * 0.05
-
-
-         -- Send reward tokens
+        -- 3. Send tokens (ensure PROCESS_ID_AOS_TOKEN is defined)
         ao.send({
-            Target = ARS,
+            Target = PROCESS_ID_AOS_TOKEN,
             Action = "Transfer",
-            Quantity = tostring(amount),
-            Recipient = tostring(userId)
+            Quantity = tostring(tokensToReceive),
+            Recipient = userId,
         })
 
-        local balance = totalPoints - pointsDeducted
-
-        -- Step 5: Send response
-        SendSuccess(m.From, balance)
+        -- ===== SUCCESS RESPONSE =====
+        SendSuccess(m.From,"Swap successful")
     end
 )
-
 -- Handler to view all transactions
 Handlers.add(
     "view_transactions",

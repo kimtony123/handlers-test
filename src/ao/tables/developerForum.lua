@@ -1154,7 +1154,7 @@ Handlers.add(
 
 Handlers.add(
     "GetDevForumCount",
-    Handlers.utils.hasMatchingTag("Action", "GetFeatureRequestCount"),
+    Handlers.utils.hasMatchingTag("Action", "GetDevForumCount"),
     function(m)
         local appId = m.Tags.appId
 
