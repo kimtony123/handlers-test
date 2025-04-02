@@ -315,7 +315,7 @@ Handlers.add(
             ratings = { 
                         count = 1,
                         totalRatings = 5,
-                        countHistory = { { time = currentTime, count = 1 } },
+                        countHistory = { { time = currentTime, count = 1 , rating = 5 } },
                         users = { [user] = {rated = true, time = currentTime } }
                     }, 
             count = 1,
@@ -412,7 +412,7 @@ Handlers.add(
     Handlers.utils.hasMatchingTag("Action", "FetchAppRatings"),
     function(m)
 
-        local appId = m.Tags.appId
+        local appId = "TX2"
 
 
         if not ValidateField(appId, "appId", m.From) then return end
@@ -632,7 +632,7 @@ Handlers.add(
         targetEntry.ratings[user] = { rated = true, time = currentTime }
         targetEntry.ratings.count = targetEntry.ratings.count + 1
 
-        targetEntry.ratings.countHistory[#targetEntry.ratings.countHistory + 1] = { time = currentTime, count = targetEntry.count }
+        targetEntry.ratings.countHistory[#targetEntry.ratings.countHistory + 1] = { time = currentTime, count = targetEntry.count , rating = rating}
         targetEntry.ratings.totalRatings = targetEntry.ratings.totalRatings + rating
 
         local transactionType = "Added A review."

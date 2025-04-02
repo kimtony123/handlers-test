@@ -785,14 +785,12 @@ Handlers.add(
     Handlers.utils.hasMatchingTag("Action", "SwapToAosTokens"),
     function(m)
         local userId = m.From
-        local pointsToSwap = tonumber(m.Tags.Points) -- Case-sensitive tag
+        local pointsToSwap = tonumber(m.Tags.points) -- Case-sensitive tag
 
         -- ===== VALIDATION CHECKS =====
         -- 1. Validate points input
-        if not pointsToSwap or pointsToSwap <= 0 then
-            SendFailure(m.From, "Invalid points amount. Must be a positive number.")
-            return
-        end
+      
+        if not ValidateField(pointsToSwap, "pointsToSwap", m.From) then return end
 
         -- 2. Check user's current points balance (from your Rankings system)
         local userPoints = 0

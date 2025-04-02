@@ -340,12 +340,14 @@ Handlers.add(
         local tokenName = m.Tags.tokenName
         local tokenTicker = m.Tags.tokenTicker
         local tokenDenomination = m.Tags.tokenDenomination
+        local logo = m.Tags.logo
 
         if not ValidateField(tokenId, "tokenId", m.From) then return end
         if not ValidateField(tokenName, "tokenName", m.From) then return end
         if not ValidateField(tokenDenomination, "tokenDenomination", m.From) then return end
         if not ValidateField(tokenTicker, "tokenTicker", m.From) then return end
         if not ValidateField(appId, "appId", m.From) then return end
+        if not ValidateField(logo, "logo", m.From) then return end
   
 
         if not Tokens[appId] then
@@ -353,13 +355,10 @@ Handlers.add(
             return
         end
         
-        if not Tokens[appId].owner ~= user then
-            SendFailure(m.From, "Only the owner can Update this tokens details.")
+         if not Tokens[appId].owner ~= user then
+           SendFailure(m.From, "Only the owner can Update this tokens details.")
         end
 
-        if  Tokens[appId].tokenCount > 1 then
-            SendFailure(m.From, "You Cant update your token details twice")
-        end
         
         local report =  Tokens[appId]
 
@@ -368,6 +367,7 @@ Handlers.add(
         report.tokenDenomination = tokenDenomination
         report.tokenTicker = tokenTicker
         report.tokenCount = report.tokenCount + 1
+        report.logo = logo
 
 
         local transactionType = "Added Token information Succesfully."
@@ -525,11 +525,46 @@ Handlers.add(
 )
 
 
+
 Handlers.add(
-    "TipsEarned ",
-    Handlers.utils.hasMatchingTag("Action", "TipsEarned "),
+    "FetchTokensX",
+    Handlers.utils.hasMatchingTag("Action", "FetchTokensX"),
+    function(m)
+        if Tokens == nil then
+            return SendFailure(m.From, "Apps are nil")
+        end
+
+        local filteredTokens = {}
+        for appId, app in pairs(Tokens) do
+            -- Check if all required fields exist and are not "nil"
+            if app.tokenDenomination ~= "nil" and
+               app.tokenId ~= "nil" and
+                app.appName ~= "nil" and
+                app.appName ~= "nil" and
+               app.logo ~= "nil" and
+               app.tokenTicker ~= "nil" then
+               
+                filteredTokens[appId] = {
+                    tokenDenomination = app.tokenDenomination,
+                    tokenId = app.tokenId,
+                    appName = app.appName,
+                    logo = app.logo,
+                    tokenTicker = app.tokenTicker
+                }
+            end
+        end
+       
+        SendSuccess(m.From, filteredTokens)
+    end
+)
+
+
+Handlers.add(
+    "TipsEarned",
+    Handlers.utils.hasMatchingTag("Action", "TipsEarned"),
     function(m)
         local appId = m.Tags.appId
+        local userId = m.Tags.receiverId
         local user = m.From
         local amount = m.Tags.amount
         local currentTime = GetCurrentTime(m)
@@ -538,16 +573,24 @@ Handlers.add(
 
         -- Check if appId exists in Tokens
         local tokenData = Tokens[appId]
+
         if  tokenData == nil then
             return SendFailure(user, "Invalid appId: Token data not found")
         end
 
         local logo = tokenData.logo
         local appName = tokenData.appName
-        local transactionType = "Project Creation."
+        local transactionType = "Tips Sent"
         local amount = amount 
         local points = 5
-        LogTipsTransaction(user, appId, transactionType, amount, currentTime,points,appName,logo)
+        LogTipsTransaction(user, appId, transactionType, amount, currentTime, points, appName, logo)
+        
+        local logo = tokenData.logo
+        local appName = tokenData.appName
+        local transactionType = "Tips recieved"
+        local amount = amount 
+        local points = 3
+        LogTipsTransaction(userId, appId, transactionType, amount, currentTime,points,appName,logo)
     end
 )
 
