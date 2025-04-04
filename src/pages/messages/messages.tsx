@@ -80,7 +80,7 @@ const addaoprojects = () => {
       const getTradeMessage = await message({
         process: AIRDROP,
         tags: [
-          { name: "Action", value: "FetchAppTask" },
+          { name: "Action", value: "TestSanitizer" },
           { name: "appId", value: String(appId) },
         ],
         signer: createDataItemSigner(window.arweaveWallet),

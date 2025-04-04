@@ -35,6 +35,34 @@ ReplyCounter = ReplyCounter or 0
 
 
 
+function Universal_sanitize(data)
+    if type(data) == "number" then
+        -- Handle integer-like numbers
+        if math.tointeger(data) then
+            return tostring(math.floor(data))
+        end
+        
+        -- For floating numbers, preserve full precision but ensure proper formatting
+        local formatted = string.format("%.16g", data)
+        
+        -- Avoid scientific notation for common decimal ranges
+        if not formatted:find("e") and not formatted:find("E") then
+            return formatted
+        end
+        
+        -- Fallback to precise string conversion
+        return tostring(data)
+    elseif type(data) == "table" then
+        local sanitized = {}
+        for k, v in pairs(data) do
+            sanitized[Universal_sanitize(k)] = Universal_sanitize(v)
+        end
+        return sanitized
+    end
+    return data
+end
+
+
 function TableToJson(tbl)
     local result = {}
     for key, value in pairs(tbl) do
@@ -519,26 +547,12 @@ Handlers.add(
     "FetchAppTasks",
     Handlers.utils.hasMatchingTag("Action", "FetchAppTasks"),
     function(m)
-        local appId = m.Tags.appId
+        local appId = "TX4"
         
         if not ValidateField(appId, "appId", m.From) then return end
         if not TaskTable[appId] then return SendFailure(m.From, "App not Found.") end
 
-        -- Convert numbers to string representation
-        local function sanitize(data)
-            if type(data) == "number" then
-                -- Handle large integers and floats differently
-                return (data % 1 == 0) and tostring(math.floor(data)) 
-                                      or string.format("%.2f", data)
-            elseif type(data) == "table" then
-                local res = {}
-                for k,v in pairs(data) do res[sanitize(k)] = sanitize(v) end
-                return res
-            end
-            return data
-        end
-
-        local response = sanitize(TaskTable[appId])
+        local response = Universal_sanitize(TaskTable[appId])
         SendSuccess(m.From, response.tasks)
     end
 )
@@ -625,7 +639,10 @@ Handlers.add(
         -- Log transaction
         LogTransaction(user, appId, "Completed Task", 0, currentTime, 3)
 
-        SendSuccess(m.From, task.replies[replyId])
+       local  sanitizedData = Universal_sanitize(TaskTable[appId])
+
+       local replyData = sanitizedData.tasks[taskId].replies[replyId]
+        SendSuccess(m.From, replyData)
     end
 )
 
@@ -829,11 +846,28 @@ Handlers.add(
 
 
 Handlers.add(
+    "TestSanitizer",
+    Handlers.utils.hasMatchingTag("Action", "TestSanitizer"),
+    function(m)
+        
+        local  Data = {val1 = 0.00001,val2 = 890.56,val3 = 57.4500, val4= 90.339999991}
+
+        -- Check if the tasks exists
+        local sanitizedTasks = Universal_sanitize(Data)
+        
+        print("Sanitized Tasks ".. json.encode(sanitizedTasks))     
+
+        SendSuccess(m.From ,sanitizedTasks)
+
+    end
+)
+
+Handlers.add(
     "FetchTaskInfo",
     Handlers.utils.hasMatchingTag("Action", "FetchTaskInfo"),
     function(m)
         local user = m.From
-        local appId = m.Tags.appId 
+        local appId = m.Tags.appId
         local taskId = m.Tags.taskId
 
       
@@ -845,11 +879,13 @@ Handlers.add(
             return
         end
 
-        -- Check if the Airdrop exists
-        local taskInfo = TaskTable[appId].tasks[taskId]
-        
 
-        SendSuccess(m.From ,taskInfo)
+        -- Check if the tasks exists
+        local sanitizedTasks = Universal_sanitize(TaskTable[appId])
+        
+        local taskData =   sanitizedTasks.tasks[taskId]      
+
+        SendSuccess(m.From ,taskData)
 
     end
 )

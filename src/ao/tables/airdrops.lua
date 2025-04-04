@@ -64,6 +64,8 @@ end
 
 
 
+
+
 -- Helper function to log transactions
 function LogTransaction(user, appId, transactionType, amount, currentTime, points)
     local transactionId = GenerateTransactionId()
@@ -118,6 +120,35 @@ function ValidateField(value, fieldName, target)
     end
     return true
 end
+
+
+function Universal_sanitize(data)
+    if type(data) == "number" then
+        -- Handle integer-like numbers
+        if math.tointeger(data) then
+            return tostring(math.floor(data))
+        end
+        
+        -- For floating numbers, preserve full precision but ensure proper formatting
+        local formatted = string.format("%.16g", data)
+        
+        -- Avoid scientific notation for common decimal ranges
+        if not formatted:find("e") and not formatted:find("E") then
+            return formatted
+        end
+        
+        -- Fallback to precise string conversion
+        return tostring(data)
+    elseif type(data) == "table" then
+        local sanitized = {}
+        for k, v in pairs(data) do
+            sanitized[Universal_sanitize(k)] = Universal_sanitize(v)
+        end
+        return sanitized
+    end
+    return data
+end
+
 
 
 function TableToJson(tbl)
@@ -199,7 +230,9 @@ Handlers.add(
         AirdropsTable[appId] = {
             owner = user,
             appId = appId,
-            status = true,  -- Set status immediately
+            status = true, -- Set status immediately
+            appIconUrl = appIconUrl,
+            appName = appName,
             count = 1,
             countHistory = {{
                 time = currentTime,
@@ -217,6 +250,8 @@ Handlers.add(
                     createdTime = currentTime,
                     appName = appName,
                     appIconUrl = appIconUrl,
+                    tokenTicker = "AOS",
+                    tokenDenomination = 1000,
                     status = "Pending",
                     airdropsReceivers = "ReviewsTable",
                     startTime = currentTime,
@@ -366,7 +401,7 @@ Handlers.add(
         local tokenTicker = m.Tags.tokenTicker
         local tokenDenomination = tonumber(m.Tags.tokenDenomination) -- Convert to number
         local amount = tonumber(m.Tags.amount)
-        local currentTime = GetCurrentTime(m)
+        local currentTime = m.Timestamp
         local airdropId = GenerateAirdropId()
 
         -- Validate numeric fields
@@ -376,7 +411,7 @@ Handlers.add(
 
         -- Calculate fees using proper denomination math
         local feePercentage = 0.03
-        local fees = amount * feePercentage * (10^tokenDenomination)
+        local fees = amount * feePercentage * tokenDenomination
         local netAmount = amount * (1 - feePercentage)
 
         -- Send reward tokens as integer
@@ -403,7 +438,7 @@ Handlers.add(
             status = "Pending",
             airdropId = airdropId,
             appId = appId,
-            appName = airdropApp.appName or "Unknown", -- Get from app data
+            appName = airdropApp.appName , -- Get from app data
             owner = userId,
             amount = netAmount,
             tokenId = tokenId,
@@ -439,6 +474,7 @@ Handlers.add(
         local currentTime = GetCurrentTime(m)
         local minAosPoints = tonumber(m.Tags.minAosPoints) -- Convert to number
         local title = m.Tags.title
+    
 
         -- Validate numeric fields
         if not startTime or not endTime or not minAosPoints then
@@ -464,9 +500,10 @@ Handlers.add(
         airdrop.minAosPoints = minAosPoints
         airdrop.title = title
 
+
         -- Add mandatory fields
-        airdrop.appIconUrl = airdrop.appIconUrl or "default_icon.png"
-        airdrop.tokenTicker = airdrop.tokenTicker or "TKN"
+        airdrop.appIconUrl = airdrop.appIconUrl 
+        airdrop.tokenTicker = airdrop.tokenTicker 
 
         LogTransaction(m.From, appId, "Airdrop Finalization", 0, currentTime, 100)
         SendSuccess(m.From, {
@@ -512,27 +549,29 @@ Handlers.add(
     end
 )
 
+
+
+
 Handlers.add(
-    "GetAirdropsByAppId",
-    Handlers.utils.hasMatchingTag("Action", "GetAirdropsByAppId"),
+    "FetchAppAirdrops",
+    Handlers.utils.hasMatchingTag("Action", "FetchAppAirdrops"),
     function(m)
-        -- Extract AppId from the message tags
         local appId = m.Tags.appId
 
-        if not ValidateField(appId, "appId", m.From) then return end
+         if not ValidateField(appId, "appId", m.From) then return end
 
-        -- Ensure appId exists in BugsReportsTable
+        -- Ensure appId exists in ReviewsTable
          if AirdropsTable[appId] == nil then
-             SendFailure(m.From , "Airdrops not Found.")
+             SendFailure(m.From , "App not Found.")
             return
         end
         -- Fetch the info
-        local airdropsInfo = AirdropsTable[appId].airdrops
-
-        SendSuccess(m.From , airdropsInfo)
-        end
+        local appAirdrops = Universal_sanitize(AirdropsTable[appId])
+ 
+        local airdrops =  appAirdrops.airdrops
+        SendSuccess(m.From , airdrops)
+    end
 )
-
 
 
 
@@ -542,9 +581,8 @@ Handlers.add(
     Handlers.utils.hasMatchingTag("Action", "FetchAirdropData"),
     function(m)
         local user = m.From
-        local appId = m.Tags.appId 
+        local appId = m.Tags.appId
         local airdropId = m.Tags.airdropId
-
       
         if not ValidateField(airdropId, "airdropId", m.From) then return end
         if not ValidateField(appId, "appId", m.From) then return end
@@ -555,10 +593,12 @@ Handlers.add(
         end
 
         -- Check if the Airdrop exists
-        local airdropFound = AirdropsTable[appId].airdrops[airdropId]
+        local airdropFound = Universal_sanitize( AirdropsTable[appId])
+        
+        local airdropData = airdropFound.airdrops[airdropId]
         
 
-        SendSuccess(m.From ,airdropFound)
+        SendSuccess(m.From ,airdropData)
 
     end
 )
@@ -632,26 +672,6 @@ Handlers.add(
     end
 )
 
-
-Handlers.add(
-    "FetchAppAirdrops",
-    Handlers.utils.hasMatchingTag("Action", "FetchAppAirdrops"),
-    function(m)
-        local appId = m.Tags.appId
-
-         if not ValidateField(appId, "appId", m.From) then return end
-
-        -- Ensure appId exists in ReviewsTable
-         if AirdropsTable[appId] == nil then
-             SendFailure(m.From , "App not Found.")
-            return
-        end
-        -- Fetch the info
-        local appAirdrops = AirdropsTable[appId].airdrops
-
-        SendSuccess(m.From , appAirdrops)
-    end
-)
 
 
 

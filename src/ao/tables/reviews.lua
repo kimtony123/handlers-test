@@ -1150,37 +1150,49 @@ Handlers.add(
     "AddModerator",
     Handlers.utils.hasMatchingTag("Action", "AddModerator"),
     function(m)
-
         local appId = m.Tags.appId
-        local modId = m.Tags.modId
+        local mods = json.decode(m.Tags.mods) 
         local user = m.From
-        local currentTime = GetCurrentTime(m) -- Ensure you have a function to get the currentcreatedTime
-        
-
-        if not ValidateField(appId, "appId", m.From) then return end
-        if not ValidateField(modId , "modId", m.From) then return end
+        local currentTime = GetCurrentTime(m)
 
 
-         -- Ensure appId exists in ReviewsTable
-        if ReviewsTable[appId] == nil then
-            SendFailure(m.From, "App doesnt exist for  specified appId ")
-            return
+        -- Validation
+        if not ValidateField(appId, "appId", user) then return end
+        if not ValidateField(mods, "mods", user) then return end
+
+        -- Check app existence
+        if not ReviewsTable[appId] then
+            return SendFailure(user, "App not found")
         end
-        
-         -- Check if the user is the app owner
+
+        -- Authorization check
         if ReviewsTable[appId].owner ~= user then
-            SendFailure(m.From, "Only the app owner can add moderator.")
+            return SendFailure(user, "Only owner can add moderators")
         end
 
+        local app = ReviewsTable[appId]
 
-        local modlists = ReviewsTable[appId]
-        modlists.users[user] = { replyReview = true, time = currentTime }
-        local transactionType = "Added Moderator.."
-        local amount = 0
+        -- Initialize mods table if not exists
+        app.mods = app.mods or {}
+
+        for _, modId in ipairs(mods) do
+            -- Check if user exists in regular users or mods
+            if app.mods[modId] then
+                print("modId exists in the list")
+            else
+                -- Add as mod with permissions
+                app.mods[modId] = {
+                    permissions = { replyReview = true },
+                    time = currentTime
+                }
+            end
+        end
+
         local points = 3
-        LogTransaction(m.From, appId, transactionType, amount, currentTime, points)  
-      
-        SendSuccess(user,modlists)
+        LogTransaction(user, appId, "Added Moderators", 0, currentTime, points)
+
+        local modsInfo = ReviewsTable[appId].mods
+        SendSuccess(user, modsInfo)
     end
 )
 
@@ -1188,38 +1200,41 @@ Handlers.add(
     "RemoveModerator",
     Handlers.utils.hasMatchingTag("Action", "RemoveModerator"),
     function(m)
-
         local appId = m.Tags.appId
         local modId = m.Tags.modId
         local user = m.From
-        local currentTime = GetCurrentTime(m) -- Ensure you have a function to get the currentcreatedTime
-        
+        local currentTime = GetCurrentTime(m)
 
-        if not ValidateField(appId, "appId", m.From) then return end
-        if not ValidateField(modId , "modId", m.From) then return end
+        -- Validate inputs
+        if not ValidateField(appId, "appId", user) then return end
+        if not ValidateField(modId, "modId", user) then return end
 
-
-         -- Ensure appId exists in ReviewsTable
-        if ReviewsTable[appId] == nil then
-            SendFailure(m.From, "App doesnt exist for  specified appId ")
-            return
-        end
-        
-         -- Check if the user is the app owner
-        if ReviewsTable[appId].owner ~= user then
-            SendFailure(m.From, "Only the app owner can add moderator.")
+        -- Check app existence
+        if not ReviewsTable[appId] then
+            return SendFailure(user, "App not found")
         end
 
+        local app = ReviewsTable[appId]
 
-        local modlists = ReviewsTable[appId].mods
-        
-        modlists.users[user] = nil
+        -- Authorization check
+        if app.owner ~= user then
+            return SendFailure(user, "Only owner can remove moderators")
+        end
 
-        local transactionType = "Removed Moderator.."
-        local amount = 0
-        local points = 2
-        LogTransaction(m.From, appId, transactionType, amount, currentTime, points)  
-        SendSuccess(user,modlists)
+        -- Check mod existence using correct structure
+        if not app.mods or not app.mods[modId] then
+            return SendFailure(user, "Moderator not found")
+        end
+
+        -- Remove mod
+        app.mods[modId] = nil
+
+        -- Update transaction log
+        LogTransaction(user, appId, "Removed Moderator", 0, currentTime, 2)
+
+        local modlists =  ReviewsTable[appId].mods
+        -- Return updated mod list
+        SendSuccess(user, modlists)
     end
 )
 
