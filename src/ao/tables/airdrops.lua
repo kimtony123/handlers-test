@@ -171,105 +171,101 @@ function DetermineUserRank(user, appId, providedRank)
 end
 
 
+
+
 Handlers.add(
     "AddAirdropsTableX",
     Handlers.utils.hasMatchingTag("Action", "AddAirdropsTableX"),
     function(m)
-        local currentTime = m.Tags.currentTime
-        local airdropId = GenerateAirdropId()
+        -- Convert and validate numeric fields first
+        local currentTime = tonumber(m.Tags.currentTime)
         local appId = m.Tags.appId
-        local user  = m.Tags.user
-        local profileUrl = m.Tags.profileUrl
-        local username = m.Tags.username
+        local user = m.Tags.user
         local appIconUrl = m.Tags.appIconUrl
         local appName = m.Tags.appName
-        local caller = m.From
+        local airdropId = GenerateAirdropId()
 
-
-        print("Here is the caller Process ID"..caller)
-
-
-        -- Field validation examples
-        if not ValidateField(currentTime, "currentTime", m.From) then return end
-        if not ValidateField(profileUrl, "profileUrl", m.From) then return end
-        if not ValidateField(username, "username", m.From) then return end
+        -- Validate required fields
         if not ValidateField(appId, "appId", m.From) then return end
         if not ValidateField(user, "user", m.From) then return end
-        if not ValidateField(appIconUrl, "appIconUrl", m.From) then return end
         if not ValidateField(appName, "appName", m.From) then return end
 
-        -- Ensure global tables are initialized
+        -- Initialize global tables properly
         AirdropsTable = AirdropsTable or {}
         AosPoints = AosPoints or {}
         Transactions = Transactions or {}
 
-       AirdropsTable[appId] =
-        {
-        owner = user,
-  airdrops = {
-    [airdropId] = {
-      airdropId = airdropId,
-      owner = user,
-      appId = appId,
-      tokenId = ARS,
-        amount = 5,
-      title = "aostore launch",
-      createdTime = currentTime,
-      appName = appName,
-      appIconUrl = appIconUrl,
-      status = "Pending",  -- (Pending, Active, Completed)
-      airdropsReceivers = "ReviewsTable",
-      startTime = currentTime,
-      endTime = currentTime + 3600,
-      minAosPoints = 150,
-      description = "Review and rate our project between today and 8th February and earn AirdropsTable ",
-      unverifiedParticipants = { [user] = { time = currentTime, Eligible = false } },
-      verifiedParticipants = {},
-      claimedUsers = {}  -- To track users who have claimed rewards
-    }},
-  count = 1,
-  countHistory = { { time = currentTime, count = 1 } },
-}
-        AosPoints[appId] = {
+        -- Create app structure with proper numeric types
+        AirdropsTable[appId] = {
+            owner = user,
             appId = appId,
-            status = false,
-            totalPointsApp = 5,
+            status = true,  -- Set status immediately
             count = 1,
-            countHistory = { { time = currentTime, count = 1 } },
-            users = {
-                [user] = { time = currentTime , points = 5 }
+            countHistory = {{
+                time = currentTime,
+                count = 1
+            }},
+            airdrops = {
+                -- Initialize first airdrop with numeric values
+                [airdropId] = {
+                    airdropId = airdropId,
+                    owner = user,
+                    appId = appId,
+                    tokenId = ARS,  -- Ensure ARS is defined elsewhere
+                    amount = 5.0,   -- Explicit float
+                    title = "aostore launch",
+                    createdTime = currentTime,
+                    appName = appName,
+                    appIconUrl = appIconUrl,
+                    status = "Pending",
+                    airdropsReceivers = "ReviewsTable",
+                    startTime = currentTime,
+                    endTime = currentTime + 3600,  -- Numeric operation
+                    minAosPoints = 150,
+                    description = "Review and rate our project between today and 8th February and earn AirdropsTable",
+                    unverifiedParticipants = {
+                        [user] = {
+                            time = currentTime,
+                            Eligible = false
+                        }
+                    },
+                    verifiedParticipants = {},
+                    claimedUsers = {}
+                }
             }
         }
 
-        AirdropsTable[#AirdropsTable + 1] = {
-            AirdropsTable[appId]
+        -- Initialize points system with numeric values
+        AosPoints[appId] = {
+            appId = appId,
+            status = true,
+            totalPointsApp = 5,
+            count = 1,
+            countHistory = {{
+                time = currentTime,
+                count = 1
+            }},
+            users = {
+                [user] = {
+                    time = currentTime,
+                    points = 5
+                }
+            }
         }
 
-        AosPoints[#AosPoints + 1] = {
-            AosPoints[appId]
-        }
+        -- Log transaction with numeric timestamp
+        LogTransaction(m.From, appId, "Project Creation", 0, currentTime, 5)
 
-        local transactionType = "Project Creation."
-        local amount = 0
-        local points = 5
-        LogTransaction(m.From, appId, transactionType, amount, currentTime, points)
-       
-        -- Update statuses to true after creation
-        AirdropsTable[appId].status = true
-        AosPoints[appId].status = true
-
-        local status = true
-
-         ao.send({
+        -- Send response
+        ao.send({
             Target = ARS,
             Action = "AirdropRespons",
-            Data = tostring(status)
+            Data = "true"
         })
-        -- Send success response
-        print("Successfully Added airdrops Table table")
+
+        print("Successfully initialized airdrops system for app: "..appId)
     end
 )
-
 
 Handlers.add(
     "DeleteApp",
@@ -359,7 +355,6 @@ Handlers.add(
 
 
 
-
 Handlers.add(
     "DepositConfirmedN",
     Handlers.utils.hasMatchingTag("Action", "DepositConfirmedN"),
@@ -369,83 +364,120 @@ Handlers.add(
         local tokenId = m.Tags.tokenId
         local tokenName = m.Tags.tokenName
         local tokenTicker = m.Tags.tokenTicker
-        local tokenDenomination = m.Tags.tokenDenomination
+        local tokenDenomination = tonumber(m.Tags.tokenDenomination) -- Convert to number
         local amount = tonumber(m.Tags.amount)
         local currentTime = GetCurrentTime(m)
         local airdropId = GenerateAirdropId()
 
+        -- Validate numeric fields
+        if not tokenDenomination or type(tokenDenomination) ~= "number" then
+            return SendFailure(m.From, "Invalid token denomination")
+        end
 
-        if not ValidateField(appId, "appId", m.From) then return end
-        if not ValidateField(tokenId, "tokenId", m.From) then return end
-        if not ValidateField(tokenName, "tokenName", m.From) then return end
-        if not ValidateField(tokenDenomination, "tokenDenomination", m.From) then return end
-        if not ValidateField(tokenTicker, "tokenTicker", m.From) then return end
-        if not ValidateField(amount, "amount", m.From) then return end
+        -- Calculate fees using proper denomination math
+        local feePercentage = 0.03
+        local fees = amount * feePercentage * (10^tokenDenomination)
+        local netAmount = amount * (1 - feePercentage)
 
-        local fees = amount * 0.03 * tokenDenomination
-        
-        -- Send reward tokens
+        -- Send reward tokens as integer
         ao.send({
             Target = tokenId,
             Action = "Transfer",
-            Quantity = tostring(fees),
-            Recipient = tostring(PROCESS_ID_AIRDROP_TABLE)
+            Quantity = tostring(math.floor(fees)),
+            Recipient = tostring(PROCESS_ID_AIRDROP_TABLE),
         })
- 
-        local amount = amount * 0.968
 
-         -- Ensure appId exists in BugsReportsTable
-        if AirdropsTable[appId] == nil then
-            SendFailure(m.From ,"App doesnt exist for  specified App" )
-            return
+        if not AirdropsTable[appId] then
+            return SendFailure(m.From, "App doesn't exist")
         end
 
-        -- Check if the App exists
-        local airdop  = AirdropsTable[appId]
+        local airdropApp = AirdropsTable[appId]
         
-        local appName = AirdropsTable[appId].appName
-        local tokenDenomination = AirdropsTable[appId].tokenDenomination
-        -- Validate ownership: only the App Owner can call this handler
-        if airdop.owner ~= userId then
-            SendFailure(m.From ,"You are not authorized to perform this action. Only the App Owner can confirm deposits." )
-            return
+        if airdropApp.owner ~= userId then
+            return SendFailure(m.From, "Authorization failed")
         end
 
-       
-        local status = "Pending"
-
-        -- Insert the new airdrop into the appId's airdrops list
-        airdop.airdrops[airdropId] = {
+        -- Create airdrop with numeric values
+        airdropApp.airdrops[airdropId] = {
             createdTime = currentTime,
-            status = status,
+            status = "Pending",
             airdropId = airdropId,
             appId = appId,
-            appName = appName,
+            appName = airdropApp.appName or "Unknown", -- Get from app data
             owner = userId,
-            amount = amount,
+            amount = netAmount,
             tokenId = tokenId,
-            tokenDenomination = tokenDenomination
+            tokenDenomination = tokenDenomination,
+            minAosPoints = 0, -- Initialize properly
+            verifiedParticipants = {},
+            unverifiedParticipants = {},
+            claimedUsers = {}
         }
 
-        -- Update count and history
-        airdop.count = (airdop.count or 0) + 1
-
-        airdop.countHistory[#airdop.countHistory + 1] = {
-            count = airdop.count,
+        -- Update counters safely
+        airdropApp.count = (airdropApp.count or 0) + 1
+        airdropApp.countHistory[#airdropApp.countHistory + 1] = {
+            count = airdropApp.count,
             time = currentTime
         }
 
-        local transactionType = " Airdop  Creation."
-        local Amount = 0
-        local points = 200
-        LogTransaction(m.From, appId, transactionType, Amount, currentTime, points)
-       
-
-        -- Send confirmation back to the App Owner
-        SendSuccess(m.From, airdropId)
-        
+        LogTransaction(userId, appId, "Airdrop Creation", netAmount, currentTime, 200)
+        SendSuccess(userId, airdropId)
     end
 )
+
+Handlers.add(
+    "FinalizeAirdropN",
+    Handlers.utils.hasMatchingTag("Action", "FinalizeAirdropN"),
+    function(m)
+        local airdropId = m.Tags.airdropId
+        local appId = m.Tags.appId
+        local airdropsReceivers = m.Tags.airdropsReceivers
+        local description = m.Tags.description
+        local startTime = tonumber(m.Tags.startTime)
+        local endTime = tonumber(m.Tags.endTime)
+        local currentTime = GetCurrentTime(m)
+        local minAosPoints = tonumber(m.Tags.minAosPoints) -- Convert to number
+        local title = m.Tags.title
+
+        -- Validate numeric fields
+        if not startTime or not endTime or not minAosPoints then
+            return SendFailure(m.From, "Invalid numeric parameters")
+        end
+
+        if endTime <= startTime then
+            return SendFailure(m.From, "EndTime must be after StartTime")
+        end
+
+        if not AirdropsTable[appId].airdrops[airdropId] then
+            return SendFailure(m.From, "Airdrop not found")
+        end
+
+        local airdrop = AirdropsTable[appId].airdrops[airdropId]
+        
+        -- Update with proper types
+        airdrop.airdropsReceivers = airdropsReceivers
+        airdrop.startTime = startTime
+        airdrop.endTime = endTime
+        airdrop.status = "Ongoing"
+        airdrop.description = description
+        airdrop.minAosPoints = minAosPoints
+        airdrop.title = title
+
+        -- Add mandatory fields
+        airdrop.appIconUrl = airdrop.appIconUrl or "default_icon.png"
+        airdrop.tokenTicker = airdrop.tokenTicker or "TKN"
+
+        LogTransaction(m.From, appId, "Airdrop Finalization", 0, currentTime, 100)
+        SendSuccess(m.From, {
+            airdropId = airdropId,
+            status = "Ongoing",
+            startTime = startTime,
+            endTime = endTime
+        })
+    end
+)
+
 
 
 
@@ -533,69 +565,7 @@ Handlers.add(
 
 
 
-Handlers.add(
-    "FinalizeAirdropN",
-    Handlers.utils.hasMatchingTag("Action", "FinalizeAirdropN"),
-    function(m)
-        local airdropId = m.Tags.airdropId
-        local appId = m.Tags.appId
-        local airdropsReceivers = m.Tags.airdropsReceivers
-        local description = m.Tags.description
-        local startTime = tonumber(m.Tags.startTime) -- Convert to number
-        local endTime = tonumber(m.Tags.endTime) -- Convert to number
-        local currentTime = GetCurrentTime(m)
-        local minAosPoints = m.Tags.minAosPoints
-        local title = m.Tags.title
 
-        print("Finalizing Airdrop with ID: " .. (airdropId or "nil"))
-
-
-        if not ValidateField(airdropId, "airdropId", m.From) then return end
-        if not ValidateField(airdropsReceivers, "airdropsReceivers", m.From) then return end
-        if not ValidateField(startTime, " startTime", m.From) then return end
-        if not ValidateField(endTime, "endTime", m.From) then return end
-        if not ValidateField(appId, "appId", m.From) then return end
-        if not ValidateField(description, "description", m.From) then return end
-        if not ValidateField(minAosPoints, "minAosPoints", m.From) then return end
-        if not ValidateField(title, "title", m.From) then return end
-
-
-        -- Validate that endTime is greater than startTime
-        if endTime <= startTime then
-            SendFailure(m.From , "EndTime must be greater than StartTime." )
-            return
-        end
-
-        if AirdropsTable[appId].airdrops[airdropId]  == nil then
-            SendFailure(m.From, "Airdrop does not exists for that AppId..")
-            return
-        end
-
-        -- Check if the Airdrop exists
-        local airdropFound = AirdropsTable[appId].airdrops[airdropId]
-        
-        -- Update the Airdrop with new information
-        airdropFound.airdropsReceivers = airdropsReceivers
-        airdropFound.startTime = startTime
-        airdropFound.endTime = endTime
-        airdropFound.status = "Ongoing" -- Update status to Ongoing
-        airdropFound.description = description
-        airdropFound.minAosPoints = minAosPoints
-        airdropFound.title = title
-
-        local transactionType = " Airdop Finalization."
-        local amount = 0
-        local points = 100
-        LogTransaction(m.From, appId, transactionType, amount, currentTime, points)
-
-        
-        local airdropInfo = AirdropsTable[appId].airdrops[airdropId]
-
-        SendSuccess(m.From , airdropInfo)
-        -- Log the updated Airdrop (Optional)
-        print("Updated Airdrop: " .. TableToJson(airdropFound))
-    end
-)
 
 
 Handlers.add(

@@ -1164,7 +1164,7 @@ Handlers.add(
             SendFailure(m.From , "App not Found.")
             return
         end
-        local count = DevForumTable[appId].count or 0
+        local count = DevForumTable[appId].count 
         SendSuccess(m.From , count)
         end
 )

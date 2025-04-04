@@ -156,8 +156,8 @@ end
 
 
 Handlers.add(
-    "AddAppsTableAP",
-    Handlers.utils.hasMatchingTag("Action", "AddAppsTableAP"),
+    "AddAppsTable",
+    Handlers.utils.hasMatchingTag("Action", "AddAppsTable"),
     function(m)
       local appId = m.Tags.appId
       local currentTime = m.Tags.currentTime

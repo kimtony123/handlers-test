@@ -443,7 +443,6 @@ end
 
 
 
-
 -- FLAGS  PROCESS FUNCTIONS. 
 function AddFlagTable(appId, user, currentTime,callback)
     ao.send({
@@ -689,13 +688,11 @@ function AddAppsTable(user, appId, appName, description, currentTime, username, 
                 discordUrl,
                 coverUrl,
                 bannerUrls,companyName,appIconUrl,projectType)
-   
-    local aosprocess = PROCESS_ID_APPS
-     print("Sending data to " .. aosprocess)
+  
     ao.send({
-        Target = aosprocess,
+        Target = PROCESS_ID_APP_DATA,
         Tags = {
-            { name = "Action",  value = "AddAppsTableAP" },
+            { name = "Action",  value = "AddAppsTable" },
             { name = "appId",   value = tostring(appId) },
             { name = "user",   value = tostring(user) },
             { name = "twitterUrl",   value = tostring(twitterUrl) },
@@ -1083,7 +1080,7 @@ Handlers.add(
   Handlers.utils.hasMatchingTag("Action", "AppsRespons"),
   function(m)
 
-    if m.From == PROCESS_ID_APPS then
+    if m.From == PROCESS_ID_APP_DATA then
         local xData = m.Data
         if not xData then
           print("No data received in apps Table response.")

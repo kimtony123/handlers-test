@@ -55,10 +55,12 @@ function TableToJson(tbl)
     return json
 end
 
+
 -- Function to get the current time in milliseconds
 function GetCurrentTime(msg)
-    return msg.createdTime -- returns time in milliseconds
+    return msg.Timestamp -- returns time in milliseconds
 end
+
 
 -- Function to generate a unique transaction ID
 function GenerateTransactionId()
@@ -153,122 +155,118 @@ function DetermineUserRank(user, appId, providedRank)
 end
 
 
-
 Handlers.add(
     "AddTaskTable",
     Handlers.utils.hasMatchingTag("Action", "AddTaskTable"),
     function(m)
-        local currentTime = m.Tags.currentTime
-        local taskId = GenerateTaskId()
+        -- Convert and validate numeric fields
+        local currentTime = tonumber(m.Tags.currentTime)
         local appId = m.Tags.appId
-        local user  = m.Tags.user
+        local user = m.Tags.user
         local username = m.Tags.username
         local profileUrl = m.Tags.profileUrl
-        local caller   = m.From
-        local replyId  = GenerateReplyId()
-        
-        print("Here is the caller Process ID"..caller)
-        
+        local replyId = GenerateReplyId()
+        local taskId = GenerateTaskId()
 
-        -- Field validation examples
-        if not ValidateField(profileUrl, "profileUrl", m.From) then return end
-        if not ValidateField(username, "username", m.From) then return end
+        -- Validate essential fields
         if not ValidateField(appId, "appId", m.From) then return end
         if not ValidateField(user, "user", m.From) then return end
-        if not ValidateField(currentTime, "currentTime", m.From) then return end
 
-        
-        -- Ensure global tables are initialized
+        -- Initialize global tables properly
         TaskTable = TaskTable or {}
         AosPoints = AosPoints or {}
-       
+
+        -- Calculate numeric values safely
+        local tasksAmount = 50000
+        local taskerCount = 500
+        local amountPerTask = tasksAmount / taskerCount  -- 100
+
+        -- Create task structure with proper numeric types
         TaskTable[appId] = {
-        appId = appId,
-        status = false,
-        owner = user,
-        mods = { [user] = { permissions = { replyTask = true }, time = currentTime } },
-        tasks = {
-        [taskId] = {
-            taskId = taskId,
-            createdTime = currentTime,
-            link = "https://x.com/aoTheComputer",
-            task = "Follow, Retweet, and Like our Twitter page",
-            description = "Launched on aostore",
-            tasksAmount = 50000,
-            taskerCount = 500,
-            amountPerTask = 50000 / 500,
-            title = "aostore tasks",
-            tokenDenomination = "3" ,
-            tokenId = ARS,
-            completedRate = {
-                        completeCount = 1,
-                        remainingTasks = 500-1},
-            replies = {
+            appId = appId,
+            status = true,  -- Set status immediately
+            owner = user,
+            count = 1,
+            countHistory = {{
+                time = currentTime,
+                count = 1
+            }},
+            users = {
+                [user] = { time = currentTime }
+            },
+            mods = {
+                [user] = {
+                    permissions = { replyTask = true },
+                    time = currentTime
+                }
+            },
+            tasks = {
+                [taskId] = {
+                    taskId = taskId,
+                    createdTime = currentTime,
+                    link = "https://x.com/aoTheComputer",
+                    task = "Follow, Retweet, and Like our Twitter page",
+                    description = "Launched on aostore",
+                    tasksAmount = tasksAmount,
+                    taskerCount = taskerCount,
+                    amountPerTask = amountPerTask,
+                    title = "aostore tasks",
+                    tokenDenomination = 1000,  -- Explicit numeric value
+                    tokenId = ARS,  -- Ensure ARS is defined
+                    completedRate = {
+                        completeCount = 0,  -- Start at 0
+                        remainingTasks = taskerCount
+                    },
+                    replies = {
                         [replyId] = {
                             replyId = replyId,
                             username = username,
-                            user = user ,
+                            user = user,
                             profileUrl = profileUrl,
                             url = "https://x.com/aoTheComputer",
                             status = "Pending",
                             rank = "Architect",
                             completedTasks = {
-                            completed = false,
-                            completedTime = currentTime,  -- When the task was completed
-                             proof = "https://x.com/aoTheComputer",  -- Optional: Proof of completion (like a link or TX hash)
-                             amount = 50000/500
+                                completed = false,
+                                completedTime = currentTime,
+                                proof = "https://x.com/aoTheComputer",
+                                amount = amountPerTask
                             }
-                            
-                }
+                        }
                     }
-            
-        }
-    },
-    count = 1,
-    countHistory = { { time = currentTime, count = 1 } },
-    users = {
-        [user] = {
-            time = currentTime,        }
-    },
-   
-}
-        -- Create the AosPoints table for this appId
-        AosPoints[appId] = {
-            appId = appId,
-            status = false,
-            totalPointsApp = 5,
-            count = 1,
-            countHistory = { { time = currentTime, count = 1 } },
-            users = {
-                [user] = { time = currentTime , points = 5 }
+                }
             }
         }
-        
-        TaskTable[#TaskTable + 1] = {
-            TaskTable[appId]
+
+        -- Initialize points system
+        AosPoints[appId] = {
+            appId = appId,
+            status = true,
+            totalPointsApp = 5,
+            count = 1,
+            countHistory = {{
+                time = currentTime,
+                count = 1
+            }},
+            users = {
+                [user] = {
+                    time = currentTime,
+                    points = 5
+                }
+            }
         }
 
-        AosPoints[#AosPoints + 1] = {
-            AosPoints[appId]
-        }
+        -- Log transaction
+        LogTransaction(m.From, appId, "Project Creation", 0, currentTime, 5)
 
-
-        local transactionType = "Project Creation."
-        local amount = 0
-        local points = 5
-        LogTransaction(m.From, appId, transactionType, amount, currentTime, points)
-
-        TaskTable[appId].status = true
-        AosPoints[appId].status = true
-
-        local status = true
-        -- Send responses back
+        -- Send response
         ao.send({
             Target = ARS,
             Action = "TaskRespons",
-            Data = tostring(status)
+            Data = "true"
         })
-        print("Successfully Added Task table")
+
+        print("Successfully initialized task system for app: "..appId)
     end
 )
 
@@ -362,25 +360,6 @@ Handlers.add(
 
 
 
-Handlers.add(
-    "FetchAppTasks",
-    Handlers.utils.hasMatchingTag("Action", "FetchAppTasks"),
-    function(m)
-        local appId = m.Tags.appId
-
-         if not ValidateField(appId, "appId", m.From) then return end
-
-        -- Ensure appId exists in ReviewsTable
-         if TaskTable[appId] == nil then
-             SendFailure(m.From , "App not Found.")
-            return
-        end
-        -- Fetch the info
-        local tasks = TaskTable[appId].tasks
-
-        SendSuccess(m.From , tasks)
-    end
-)
 
 
 Handlers.add(
@@ -390,75 +369,69 @@ Handlers.add(
         local userId = m.From
         local appId = m.Tags.appId
         local tokenId = m.Tags.tokenId
-        local tokenDenomination = m.Tags.tokenDenomination
+        local tokenDenomination = tonumber(m.Tags.tokenDenomination)  -- Convert to number
         local amount = tonumber(m.Tags.amount)
-        local currentTime = GetCurrentTime(m)
+        local currentTime = m.Timestamp
         local taskId = GenerateTaskId()
 
-        if not ValidateField(appId, "appId", m.From) then return end
-        if not ValidateField(tokenId, "tokenId", m.From) then return end
-        if not ValidateField(tokenDenomination, "tokenDenomination", m.From) then return end
-        if not ValidateField(amount, "amount", m.From) then return end
+        print ("Deposit Timestamp" .. currentTime)
 
+        -- Add validation for numeric fields
+        if not tokenDenomination or type(tokenDenomination) ~= "number" then
+            return SendFailure(m.From, "Invalid token denomination")
+        end
 
-        local fees = amount * 0.02 * tokenDenomination
+        local fees = amount * 0.02 * tokenDenomination  -- Use exponent for denomination
         
-        -- Send reward tokens
+        local fees = math.floor(fees)
+
+
         ao.send({
             Target = tokenId,
             Action = "Transfer",
-            Quantity = tostring(fees),
-            Recipient = tostring(PROCESS_ID_STAKERS)
+            Quantity = tostring(fees),  -- Ensure integer
+            Recipient = PROCESS_ID_AOS_STAKERS
         })
- 
-        local amount = amount * 0.979
-         -- Ensure appId exists in BugsReportsTable
-        if TaskTable[appId] == nil then
-            SendFailure(m.From ,"App doesnt exist for  specified App" )
-            return
+
+        local remainingAmount = amount * 0.979
+
+        if not TaskTable[appId] then
+            return SendFailure(m.From, "App doesn't exist")
         end
 
-        -- Check if the App exists
-        local tasks  = TaskTable[appId]
+        local tasks = TaskTable[appId]
         
-      -- Validate ownership: only the App Owner can call this handler
         if tasks.owner ~= userId then
-            SendFailure(m.From ,"You are not authorized to perform this action. Only the App Owner can confirm deposits." )
-            return
+            return SendFailure(m.From, "Authorization failed")
         end
 
-       
-        local status = "Pending"
-
-        -- Insert the new airdrop into the appId's airdrops list
+        -- Initialize with proper numeric types
         tasks.tasks[taskId] = {
             createdTime = currentTime,
-            status = status,
+            status = "Pending",
             taskId = taskId,
-            amount = amount,
+            tasksAmount = remainingAmount,
             tokenId = tokenId,
             tokenDenomination = tokenDenomination,
-            
+            taskerCount = 0,  -- Initialize as number
+            completedRate = {
+                completeCount = 0,
+                remainingTasks = 0
+            },
+            replies ={}
         }
 
-        -- Update count and history
         tasks.count = (tasks.count or 0) + 1
-
         tasks.countHistory[#tasks.countHistory + 1] = {
             count = tasks.count,
             time = currentTime
         }
 
-        local transactionType = "Tasks Creation."
-        local amount = 0
-        local points = 200
-        LogTransaction(m.From, appId, transactionType, amount, currentTime, points)
-       
-
-        -- Send confirmation back to the App Owner
-        SendSuccess(m.From, taskId)
+        LogTransaction(userId, appId, "Tasks Creation", remainingAmount, currentTime, 200)
+        SendSuccess(userId, taskId)
     end
 )
+
 
 
 Handlers.add(
@@ -470,70 +443,110 @@ Handlers.add(
         local link = m.Tags.link
         local task = m.Tags.task
         local description = m.Tags.description
-        local taskerCount = m.Tags.taskerCount
-        local title  = m.Tags.title
+        local taskerCount = tonumber(m.Tags.taskerCount)  -- Convert to number
+        local title = m.Tags.title
         local userId = m.From
-        local currentTime = GetCurrentTime(m)
+        local currentTime = m.Timestamp
 
-       
+        print (" Finalize Timestamp" .. currentTime)
 
-        if not ValidateField(appId, "appId", m.From) then return end
-         if not ValidateField(title, "title", m.From) then return end
-        if not ValidateField(link, "link", m.From) then return end
-        if not ValidateField(taskId, "taskId", m.From) then return end
-        if not ValidateField(task, "task", m.From) then return end
-        if not ValidateField(description, "description", m.From) then return end
-        if not ValidateField(taskerCount, "taskerCount", m.From) then return end
+        -- Validate numeric taskerCount
+        if not taskerCount or type(taskerCount) ~= "number" then
+            return SendFailure(m.From, "Invalid tasker count")
+        end
 
-
-        if TaskTable[appId].tasks[taskId]  == nil then
-            SendFailure(m.From, "task does not exists for that AppId..")
-            return
+        if not TaskTable[appId].tasks[taskId] then
+            return SendFailure(m.From, "Task not found")
         end
 
         if TaskTable[appId].owner ~= userId then
-            SendFailure(m.From ,"You are not authorized to perform this action. Only the App Owner can Finalize tasks." )
-            return
+            return SendFailure(m.From, "Authorization failed")
         end
 
-
         local taskFound = TaskTable[appId].tasks[taskId]
-
-
         
-        local amountPerTask = (taskFound.amount/taskerCount)
+        -- Ensure numeric types
+        local amount = tonumber(taskFound.tasksAmount) 
+        local amountPerTask = amount / taskerCount
         
-        local replies = {}
-        local completedRate  = {}
-        
-        -- Update the task with new information
-        taskFound.link  = link
+        -- Update with proper numeric values
+        taskFound.link = link
         taskFound.task = task
-        taskFound.taskerCount = taskerCount
-        taskFound.status = "Ongoing" -- Update status to Ongoing
+        taskFound.tasksAmount = amount
+        taskFound.taskerCount = taskerCount  -- Now a number
+        taskFound.status = "Ongoing"
         taskFound.description = description
-        taskFound.amountPerTask = amountPerTask
-        taskFound.replies  = replies
-        taskFound.title  = title
-        taskFound.completedRate = completedRate
+        taskFound.amountPerTask = math.floor(amountPerTask * 100) / 100  -- Round to 2 decimals
+        taskFound.title = title
         
-        
-        local transactionType = "Task Finalization."
-        local amount = 0
-        local points = 100
-        LogTransaction(m.From, appId, transactionType, amount, currentTime, points)
-        SendSuccess(m.From ,"task finalized successfully for ID: " .. taskId )
+        -- Initialize completedRate properly
+        taskFound.completedRate = {
+            completeCount = 0,
+            remainingTasks = taskerCount  -- Use numeric value
+        }
+
+        LogTransaction(userId, appId, "Task Finalization", 0, currentTime, 100)
+        SendSuccess(userId, "Task finalized: "..taskId)
     end
 )
 
 
+-- Handlers.add(
+--     "FetchAppTask",
+--     Handlers.utils.hasMatchingTag("Action", "FetchAppTask"),
+--     function(m)
+--         local appId = "TX4"
 
+--          if not ValidateField(appId, "appId", m.From) then return end
+
+--          print("validation 1 complete  AppId : " .. appId)
+--         -- Ensure appId exists in ReviewsTable
+--          if TaskTable[appId] == nil then
+--              SendFailure(m.From , "App not Found.")
+--             return
+--         end
+
+--         print("validation 2 complete  AppId : " .. json.encode(TaskTable[appId]))
+--         -- Fetch the info
+--         local tasks = TaskTable[appId].tasks
+
+--         print("validation 3 complete : " .. json.encode(tasks))
+--         SendSuccess(m.From , TaskTable[appId])
+--     end
+-- )
+
+Handlers.add(
+    "FetchAppTasks",
+    Handlers.utils.hasMatchingTag("Action", "FetchAppTasks"),
+    function(m)
+        local appId = m.Tags.appId
+        
+        if not ValidateField(appId, "appId", m.From) then return end
+        if not TaskTable[appId] then return SendFailure(m.From, "App not Found.") end
+
+        -- Convert numbers to string representation
+        local function sanitize(data)
+            if type(data) == "number" then
+                -- Handle large integers and floats differently
+                return (data % 1 == 0) and tostring(math.floor(data)) 
+                                      or string.format("%.2f", data)
+            elseif type(data) == "table" then
+                local res = {}
+                for k,v in pairs(data) do res[sanitize(k)] = sanitize(v) end
+                return res
+            end
+            return data
+        end
+
+        local response = sanitize(TaskTable[appId])
+        SendSuccess(m.From, response.tasks)
+    end
+)
 
 Handlers.add(
     "AddTaskReply",
     Handlers.utils.hasMatchingTag("Action", "AddTaskReply"),
     function(m)
-
         local appId = m.Tags.appId
         local taskId = m.Tags.taskId
         local username = m.Tags.username
@@ -543,9 +556,8 @@ Handlers.add(
         local user = m.From
         local currentTime = GetCurrentTime(m)
         local replyId = GenerateReplyId()
-        
-        
 
+        -- Validate input fields
         if not ValidateField(appId, "appId", m.From) then return end
         if not ValidateField(url, "url", m.From) then return end
         if not ValidateField(username, "username", m.From) then return end
@@ -553,166 +565,162 @@ Handlers.add(
         if not ValidateField(taskId, "taskId", m.From) then return end
         if not ValidateField(providedRank, "providedRank", m.From) then return end
 
-        -- Ensure appId exists in ReviewsTable
-        if TaskTable[appId] == nil then
-            SendFailure(m.From, "App doesnt exist for  specified AppId..")
-            return
+        -- Check app existence
+        if not TaskTable[appId] then
+            return SendFailure(m.From, "App doesn't exist for specified AppId")
         end
 
-        -- Check if the user is the app owner
-        if TaskTable[appId].owner ~= user or TaskTable[appId].mods[user] ~= user then
-            SendFailure(m.From, "Only the app owner or Mods can reply to bug reports.")
+        local app = TaskTable[appId]
+
+
+        -- Verify task exists
+        if not app.tasks[taskId] then
+            return SendFailure(m.From, "Task doesn't exist in specified App")
         end
 
-        if TaskTable[appId].tasks[taskId] == nil then
-            SendFailure(m.From, "task doesnt exist for  specified AppId..")
-            return
-        end
+        local task = app.tasks[taskId]
+        task.replies = task.replies or {}
 
-
-
-
-        local targetTasks =  TaskTable[appId].tasks[taskId]
-
-        -- Check if the user has already replied to this review
-        if targetTasks.replies then
-            for _, reply in ipairs(targetTasks.replies) do
-                if reply.url == url then
-                    local transactionType = "Replied twice using the same description"
-                    local amount = 0
-                    local points = -10
-                    LogTransaction(m.From, appId, transactionType, amount, currentTime, points)
-                    SendFailure(m.From, "This link has already been replied , 30 AosPoints deducted")
-                    return
-                end
+        -- Enhanced duplicate check (NEW)
+        for existingId, reply in pairs(task.replies) do
+            -- Check both URL AND user to prevent duplicates
+            if reply.user == user then
+                LogTransaction(user, appId, "Duplicate user reply", 0, currentTime, -10)
+                return SendFailure(m.From, "You've already submitted a reply to this task")
             end
-        else
-            targetTasks.replies = {} -- Initialize replies table if not present
+            if reply.url == url then
+                LogTransaction(user, appId, "Duplicate URL submission", 0, currentTime, -10)
+                return SendFailure(m.From, "This URL has already been submitted")
+            end
         end
-        
-      
-        local finalRank = DetermineUserRank(m.From,appId, providedRank)
 
-         local amount = TaskTable[appId].tasks[taskId].amountPerTask
+        -- Get task amount safely
+        local amount = task.amountPerTask
 
-        TaskTable[appId].tasks[taskId].replies[replyId] =  {
+        local completedTasks = {
+                completed = false,
+                completedTime = currentTime,
+                proof = url,
+                amount = amount
+            }
+
+        -- Create new reply
+        task.replies[replyId] = {
             replyId = replyId,
-            user = user ,
+            user = user,
             url = url,
             status = "Pending",
-            completedTasks = {
-                            completed = false,
-                            completedTime = currentTime,  -- When the task was completed
-                             proof = url,  -- Optional: Proof of completion (like a link or TX hash)
-                             amount = amount},           
+            completedTasks = completedTasks,
             profileUrl = profileUrl,
-            rank = finalRank,
+            rank = DetermineUserRank(user, appId, providedRank),
             username = username,
             createdTime = currentTime
         }
-        local transactionType = "Finished A task."
-        local amount = 0
-        local points = 3
-        LogTransaction(m.From, appId, transactionType, amount, currentTime, points)
 
-        
-        local replyInfo = TaskTable[appId].tasks[taskId].replies[replyId]
+        -- Update task counters
+        task.completedRate = task.completedRate or { completeCount = 0, remainingTasks = task.taskerCount }
+        task.completedRate.completeCount = (task.completedRate.completeCount or 0) + 1
+        task.completedRate.remainingTasks = (task.completedRate.remainingTasks or task.taskerCount) - 1
 
-        SendSuccess(m.From , replyInfo)
-         end
+        -- Log transaction
+        LogTransaction(user, appId, "Completed Task", 0, currentTime, 3)
+
+        SendSuccess(m.From, task.replies[replyId])
+    end
 )
 
 Handlers.add(
     "RewardTask",
     Handlers.utils.hasMatchingTag("Action", "RewardTask"),
     function(m)
-
         local appId = m.Tags.appId
         local taskId = m.Tags.taskId
         local replyId = m.Tags.replyId
-        local user = m.From
         local currentTime = GetCurrentTime(m)
-        
 
-
+        -- Validate input fields
         if not ValidateField(appId, "appId", m.From) then return end
         if not ValidateField(replyId, "replyId", m.From) then return end
         if not ValidateField(taskId, "taskId", m.From) then return end
 
-        -- Ensure appId exists in ReviewsTable
-        if TaskTable[appId] == nil then
-            SendFailure(m.From, "App doesnt exist for  specified AppId..")
-            return
+        -- Check app existence
+        if not TaskTable[appId] then
+            return SendFailure(m.From, "App doesn't exist for specified AppId")
         end
 
-        -- Check if the user is the app owner
-        if TaskTable[appId].owner ~= user or TaskTable[appId].mods[user] ~= user then
-            SendFailure(m.From, "Only the app owner or Mods can reward tasks.")
+        local app = TaskTable[appId]
+
+        -- Validate permissions (FIXED)
+        if app.owner ~= m.From and not app.mods[m.From] then
+            return SendFailure(m.From, "Only owner/mods can reward tasks")
         end
 
-        if TaskTable[appId].tasks[taskId] == nil then
-            SendFailure(m.From, "task doesnt exist for  specified AppId..")
-            return
+        -- Verify task exists
+        if not app.tasks[taskId] then
+            return SendFailure(m.From, "Task doesn't exist in specified App")
         end
 
+        local task = app.tasks[taskId]
 
-        local taskFound = TaskTable[appId].tasks[taskId]
-
-        taskFound.completedRate.completeCount =  taskFound.completedRate.completeCount +1
-
-        taskFound.completedRate.remainingTasks =  taskFound.taskerCount - 1
-
-        local targetReply = TaskTable[appId].tasks[taskId][replyId]
-        
-
-        if targetReply == nil then
-            SendFailure(m.From, "reply Id doesnt exist for  specified AppId..")
-            return
+        -- Get reply safely (FIXED PATH)
+        local targetReply = task.replies and task.replies[replyId]
+        if not targetReply then
+            return SendFailure(m.From, "Reply doesn't exist for specified task")
         end
 
-         if targetReply.completedTasks.completed then
-            SendFailure(m.From, "Reward already sent to the user")
-            return
+        -- Check completion status
+        if targetReply.completedTasks.completed == true then
+            return SendFailure(m.From, "Reward already sent to the user")
         end
 
+        -- Validate task economics
+        local amountPerTask = task.amountPerTask or 0
+        local tokenId = task.tokenId or "nil"
+        local tokenDenomination = tonumber(task.tokenDenomination) or 0
 
-        
-        local gift = TaskTable[appId].tasks[taskId].amountPerTask
-         
-        local tokenId = TaskTable[appId].tasks[taskId].tokenId
-        local tokenDenomination = TaskTable[appId].tasks[taskId].tokenDenomination
+        if tokenId == "nil" or tokenDenomination <= 0 then
+            return SendFailure(m.From, "Invalid token configuration")
+        end
 
-        local user =  targetReply.user 
+        -- Calculate base units
+        local baseUnits = amountPerTask * (10^tokenDenomination)
+        local recipient = targetReply.user
 
-         -- Calculate amount in base units (assuming 1 token = 1000 units)
-        local amount = gift * tokenDenomination
-        -- Transfer tokens
-        ao.send({
-        Target = tokenId,
-        Action = "Transfer",
-        Quantity = tostring(amount),
-        Recipient = tostring(user)})
+        -- Send tokens with error handling (NEW)
+         ao.send({
+            Target = tokenId,
+            Action = "Transfer",
+            Quantity = tostring(baseUnits),
+            Recipient = recipient,
+        })
 
-        
-        
-        targetReply.completedTasks.completed = true
-        targetReply.completedTasks.completedTime = currentTime
 
-        targetReply.completedTasks.amount = amount
+        -- Update completion status (FIXED)
+        targetReply.completedTasks = {
+            completed = true,
+            completedTime = currentTime,
+            proof = targetReply.url,
+            amount = amountPerTask,  -- Store display amount
+        }
 
-        local transactionType = "Rewarded user."
-        local amount = 0
-        local points = 3
-        LogTransaction(m.From, appId, transactionType, amount, currentTime, points)
+        -- Update counters safely (FIXED)
+        task.completedRate = task.completedRate or {
+            completeCount = 0,
+            remainingTasks = task.taskerCount
+        }
+        task.completedRate.completeCount = (task.completedRate.completeCount or 0) + 1
+        task.completedRate.remainingTasks = math.max(
+            (task.taskerCount or 0) - task.completedRate.completeCount, 
+            0
+        )
 
-        local transactionType = "Received Reward."
-        local amount = gift
-        local points = 0
-        LogTransaction(m.From, appId, transactionType, amount, currentTime, points)
-        SendSuccess(m.From , " Succesfully Rewarded user" .. user)
-         end
+        -- Log transactions properly (FIXED)
+        LogTransaction(m.From, appId, "Rewarded User", amountPerTask, currentTime, 3)
+        LogTransaction(recipient, appId, "Received Reward", amountPerTask, currentTime, 0)
+
+        SendSuccess(m.From, "Successfully rewarded user "..recipient)
+    end
 )
-
 
 Handlers.add(
     "AddModerator",

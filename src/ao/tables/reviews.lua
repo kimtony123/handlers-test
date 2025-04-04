@@ -175,62 +175,6 @@ end
 
 
 Handlers.add(
-    "AddReviewTablep",
-    Handlers.utils.hasMatchingTag("Action", "AddReviewTablep"),
-    function(m)
-        local currentTime = GetCurrentTime(m)
-        local appId = m.Tags.appId
-        local user = m.Tags.user
-        
-        -- Validate required fields
-        if not ValidateField(appId, "appId", user) then return end
-        if not ValidateField(user, "user", user) then return end
-
-        -- Check if already initialized
-        if ReviewsTable[appId] then
-            return SendFailure(user, "Review system already initialized for this app")
-        end
-
-        -- Initialize core tables
-        ReviewsTable[appId] = {
-            appId = appId,
-            owner = user,
-            mods = {},
-            reviews = {},
-            ratings = { 
-                count = 0,
-                totalRatings = 0,
-                countHistory = {},
-                users = {}
-            },
-            count = 0,
-            countHistory = {},
-            users = {}
-        }
-
-        AosPoints[appId] = {
-            appId = appId,
-            totalPointsApp = 0,
-            count = 0,
-            countHistory = {},
-            users = {}
-        }
-
-        -- Log transaction
-        LogTransaction(user, appId, "Initialize Reviews System", 0, currentTime, 0)
-
-        local status = true
-        -- Send responses back
-        ao.send({
-            Target = ARS,
-            Action = "ReviewsRespons",
-            Data = tostring(status)
-        })
-        print("Successfully Added Review table")
-    end
-)
-
-Handlers.add(
     "AddReviewTableY",
     Handlers.utils.hasMatchingTag("Action", "AddReviewTableY"),
     function(m)
@@ -412,7 +356,7 @@ Handlers.add(
     Handlers.utils.hasMatchingTag("Action", "FetchAppRatings"),
     function(m)
 
-        local appId = "TX2"
+        local appId = m.Tags.appId
 
 
         if not ValidateField(appId, "appId", m.From) then return end
@@ -563,7 +507,7 @@ Handlers.add(
         local description = m.Tags.description
         local rating = tonumber(m.Tags.rating)
         local providedRank = m.Tags.rank
-        
+    
 
         -- Ensure appId exists in ReviewsTable
         if ReviewsTable[appId] == nil then
@@ -587,7 +531,7 @@ Handlers.add(
         -- Get or initialize the app entry in the target table
         local targetEntry = ReviewsTable[appId]
 
-        if targetEntry.users[user].reviewed then
+        if targetEntry.users[user] then
             SendFailure(m.From , "You have already Reviewed this project.")
              return
         end
@@ -614,7 +558,7 @@ Handlers.add(
             }
         }
         -- Add the new entry
-        ReviewsTable[appId][reviewId] = {
+        ReviewsTable[appId].reviews[reviewId] = {
             reviewId = reviewId ,
             user = user,
             username = username,
@@ -889,12 +833,12 @@ Handlers.add(
         local unhelpfulData = review.voters.foundUnhelpful
         local helpfulData = review.voters.foundHelpful
 
-        if unhelpfulData.users[user].voted then
+        if unhelpfulData.users[user] then
             SendFailure(m.From, "You have already marked this review as unhelpful.")
             return
         end
 
-        if helpfulData.users[user].voted then
+        if helpfulData.users[user] then
             helpfulData.users[user] = nil
             helpfulData.count = helpfulData.count - 1
 
@@ -950,7 +894,7 @@ Handlers.add(
        
         local unhelpfulData = review.voters.foundUnhelpful
         
-        if helpfulData.users[user].voted then
+        if helpfulData.users[user] then
             SendFailure(m.From , "You already marked this review as helpful.")
             return
         end

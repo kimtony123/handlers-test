@@ -529,7 +529,7 @@ Handlers.add(
 
         bugReportEntry.status = "Closed"
         
-        bugReportEntry.statusHistory[#bugReportEntry.requests[requestId].statusHistory + 1] = { status = "Closed", time = currentTime }
+        bugReportEntry.statusHistory[#bugReportEntry.statusHistory + 1] = { status = "Closed", time = currentTime }
 
         local transactionType = "Replied To Bug Report"
         local amount = 0

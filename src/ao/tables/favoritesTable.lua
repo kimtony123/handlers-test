@@ -217,8 +217,8 @@ Handlers.add(
             appIconUrl = appIconUrl,
             projectType = projectType,
             status = false,
-            count = 0,
-            countHistory = { { time = currentTime, count = 0 } },
+            count = 1,
+            countHistory = { { time = currentTime, count = 1 } },
             users = {
                 [user] = { rated = true , time = currentTime }
             }

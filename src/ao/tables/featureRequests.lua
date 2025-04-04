@@ -501,7 +501,7 @@ Handlers.add(
         -- Check if the user has already replied to this bug report
         for _, reply in ipairs(featureRequestEntry.replies) do
             if reply.user == user then
-                SendFailure(m.From, "You have already replied to this bug report.")
+                SendFailure(m.From, "You have already replied to this feature request.")
             end
         end
 
@@ -547,6 +547,85 @@ Handlers.add(
          end
 )
 
+
+Handlers.add(
+    "AddFeatureRequestReply",
+    Handlers.utils.hasMatchingTag("Action", "AddFeatureRequestReply"),
+    function(m)
+        local appId = m.Tags.appId
+        local requestId = m.Tags.requestId
+        local username = m.Tags.username
+        local description = m.Tags.description
+        local profileUrl = m.Tags.profileUrl
+        local user = m.From
+        local currentTime = GetCurrentTime(m)
+        local replyId = GenerateReplyId()
+        local providedRank = m.Tags.rank
+
+        -- Validation checks
+        if not ValidateField(appId, "appId", m.From) then return end
+        if not ValidateField(description, "description", m.From) then return end
+        if not ValidateField(username, "username", m.From) then return end
+        if not ValidateField(profileUrl, "profileUrl", m.From) then return end
+        if not ValidateField(requestId, "requestId", m.From) then return end
+        if not ValidateField(providedRank, "providedRank", m.From) then return end
+
+        -- Check app existence
+        if not FeatureRequestsTable[appId] then
+            return SendFailure(m.From, "App doesn't exist for specified AppId")
+        end
+
+        local app = FeatureRequestsTable[appId]
+        
+        -- Check request existence
+        if not app.requests[requestId] then
+            return SendFailure(m.From, "Request doesn't exist in specified App")
+        end
+
+        local featureRequest = app.requests[requestId]
+
+        -- Authorization check
+        if app.owner ~= user and not app.mods[user] then
+            return SendFailure(m.From, "Only owner/mods can reply to feature requests")
+        end
+
+        -- Check existing replies
+        for replyId, reply in pairs(featureRequest.replies) do
+            if reply.user == user then
+                return SendFailure(m.From, "You've already replied to this request")
+            end
+        end
+
+        -- Add new reply
+        featureRequest.replies[replyId] = {
+            replyId = replyId,
+            user = user,
+            profileUrl = profileUrl,
+            edited = false,
+            rank = DetermineUserRank(user, appId, providedRank),
+            username = username,
+            description = description,
+            createdTime = currentTime,
+            voters = {
+                foundHelpful = { count = 0, countHistory = {}, users = {} },
+                foundUnhelpful = { count = 0, countHistory = {}, users = {} }
+            }
+        }
+
+        -- Update status history (FIXED LINE)
+        featureRequest.statusHistory[#featureRequest.statusHistory + 1] = {
+            status = "Closed",
+            time = currentTime
+        }
+
+        featureRequest.status = "Closed"
+
+        -- Log transaction
+        LogTransaction(user, appId, "Replied To Feature Requests", 0, currentTime, 5)
+
+        SendSuccess(m.From, featureRequest.replies[replyId])
+    end
+)
 
 
 
