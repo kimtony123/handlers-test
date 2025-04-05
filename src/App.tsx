@@ -62,11 +62,7 @@ function App() {
           isCollapsed={isCollapsed}
         />
         <div className="nav-content flex-grow">
-          <Navbar
-            theme={theme}
-            isCollapsed={isCollapsed}
-            setIsCollapsed={setIsCollapsed}
-          />
+          <Navbar theme={theme} />
           {/* Pages Content go here */}
           <Routes>
             <Route path="/" element={<Home />} />

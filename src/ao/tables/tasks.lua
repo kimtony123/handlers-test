@@ -547,7 +547,7 @@ Handlers.add(
     "FetchAppTasks",
     Handlers.utils.hasMatchingTag("Action", "FetchAppTasks"),
     function(m)
-        local appId = "TX4"
+        local appId = m.Tags.appId
         
         if not ValidateField(appId, "appId", m.From) then return end
         if not TaskTable[appId] then return SendFailure(m.From, "App not Found.") end
@@ -700,7 +700,7 @@ Handlers.add(
         end
 
         -- Calculate base units
-        local baseUnits = amountPerTask * (10^tokenDenomination)
+        local baseUnits = amountPerTask * tokenDenomination
         local recipient = targetReply.user
 
         -- Send tokens with error handling (NEW)

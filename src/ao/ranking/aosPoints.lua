@@ -93,7 +93,9 @@ Transactions  = Transactions or {}
 
 Rankings = Rankings or {}
 
-AosPointsBalance = AosPointsBalance or {}
+AosPointsBalance   = AosPointsBalance or {}
+
+
 AosPoints = AosPoints or {}
 -- Counters variables 
 AppCounter  = AppCounter or 0
@@ -139,6 +141,29 @@ end
 function GetCurrentTime(msg)
     return msg.Timestamp -- returns time in milliseconds
 end
+
+
+-- Global Transfer Function
+function Transfer(tokenId, quantity, recipient)
+    -- Validate inputs
+    assert(type(tokenId) == "string" and tokenId ~= "", "Invalid token ID")
+    assert(type(recipient) == "string" and recipient ~= "", "Invalid recipient")
+    assert(type(quantity) == "number" and quantity > 0, "Quantity must be positive number")
+
+    -- Convert to integer if needed
+    local amount = math.floor(quantity)
+    
+    -- Execute transfer
+    ao.send({
+        Target = tokenId,
+        Action = "Transfer",
+        Quantity = tostring(amount),
+        Recipient = recipient,
+    })
+
+    return true
+end
+
 
 
 -- Function to generate a unique App ID
@@ -762,12 +787,26 @@ Handlers.add(
             found = false
         }
 
+        AosPointsBalance  = AosPointsBalance or {}
+        
+        if AosPointsBalance[userId] == nil then
+            
+            AosPointsBalance[userId] = { pointsSwapped = 0 }
+        
+        else
+        
+            AosPointsBalance[userId].pointsSwapped = AosPointsBalance[userId].pointsSwapped 
+        end
+
+        local pointsSwappedBalance = AosPointsBalance[userId].pointsSwapped
+        
+
         -- Check all ranking categories for the user
         for category, users in pairs(Rankings or {}) do
             if users[userId] then
                 response.rank = category
                 -- Handle both formats: direct value (number) or table with points field
-                response.points = type(users[userId]) == "number" and users[userId] or (users[userId].points or 0)
+                response.points = type(users[userId]) == "number" and users[userId] or (users[userId].points or 0) - (pointsSwappedBalance)
                 response.found = true
                 break
             end
@@ -792,19 +831,36 @@ Handlers.add(
       
         if not ValidateField(pointsToSwap, "pointsToSwap", m.From) then return end
 
+        
+        AosPointsBalance  = AosPointsBalance or {}
+        
+        if AosPointsBalance[userId] == nil then
+            
+            AosPointsBalance[userId] = { pointsSwapped = 0 }
+        
+        else
+        
+            AosPointsBalance[userId].pointsSwapped = AosPointsBalance[userId].pointsSwapped 
+        end
+        
+        local pointsSwappedBalance = AosPointsBalance[userId].pointsSwapped
+        
+
         -- 2. Check user's current points balance (from your Rankings system)
         local userPoints = 0
         for _, category in pairs(Rankings or {}) do
             if category[userId] then
-                userPoints = type(category[userId]) == "number" 
-                    and category[userId] 
+                userPoints = type(category[userId]) == "number"
+                    and category[userId]
                     or (category[userId].points or 0)
                 break
             end
         end
+        
+        local realBalance = userPoints - pointsSwappedBalance
 
         -- 3. Verify sufficient balance
-        if userPoints < pointsToSwap then
+        if realBalance <= pointsToSwap and pointsToSwap <= 0 then
             SendFailure(m.From, string.format(
                 "Insufficient balance. You have %d points but requested %d.",
                 userPoints,
@@ -815,32 +871,68 @@ Handlers.add(
 
         -- ===== PROCESS SWAP =====
         -- 1. Calculate token amount (adjust conversion rate as needed)
-        local conversionRate = 0.05  -- 1000 points = 50 tokens
-        local tokensToReceive = pointsToSwap * 1000 * conversionRate
-
+       
         -- 2. Deduct points from user (pseudo-code - update your actual storage)
         -- This assumes you have a way to update Rankings globally
         for _, category in pairs(Rankings) do
             if category[userId] then
                 if type(category[userId]) == "number" then
                     category[userId] = category[userId] - pointsToSwap
+                    AosPointsBalance[userId].pointsSwapped = AosPointsBalance[userId].pointsSwapped + pointsToSwap
                 else
                     category[userId].points = category[userId].points - pointsToSwap
+                    AosPointsBalance[userId].pointsSwapped = AosPointsBalance[userId].pointsSwapped + pointsToSwap
                 end
                 break
             end
         end
 
-        -- 3. Send tokens (ensure PROCESS_ID_AOS_TOKEN is defined)
-        ao.send({
-            Target = PROCESS_ID_AOS_TOKEN,
-            Action = "Transfer",
-            Quantity = tostring(tokensToReceive),
-            Recipient = userId,
-        })
+         local conversionRate = 0.05  -- 1000 points = 50 tokens
+        local quantity = pointsToSwap * 1000 * conversionRate   
+        local recipient = userId
+        
+        local tokenId = PROCESS_ID_AOS_TOKEN
 
-        -- ===== SUCCESS RESPONSE =====
-        SendSuccess(m.From,"Swap successful")
+        if not ValidateField(tokenId, "tokenId", m.From) then return end
+        if not ValidateField(quantity, "quantity", m.From) then return end
+        if not ValidateField(recipient, "recipient", m.From) then return end
+
+        local message  = Transfer(tokenId, quantity, recipient)
+
+        if message == true then
+              -- ===== SUCCESS RESPONSE =====
+            SendSuccess(m.From, "Suucessfully swapped" .. quantity)
+        else 
+            SendFailure(m.From,"Transfer Failed...")
+        end
+    end
+)
+
+
+-- Test Handler
+Handlers.add(
+    "TestTransfer",
+    Handlers.utils.hasMatchingTag("Action", "TestTransfer"),
+    function(m)
+        local params = {
+            tokenId = PROCESS_ID_AOS_TOKEN,
+            quantity = tonumber(10),
+            recipient = "yCvSnKJXQFMn852960xFQUbSJXbUAfhQipLWVihrg1E"
+        }
+
+        -- Validate inputs
+        if not ValidateField(params.tokenId, "tokenId", m.From) then return end
+        if not ValidateField(params.quantity, "quantity", m.From) then return end
+        if not ValidateField(params.recipient, "recipient", m.From) then return end
+
+      
+        local message  = Transfer(params.tokenId, params.quantity, params.recipient)
+
+        if message == true then
+            SendSuccess(m.From, "successful Sent" .. params.quantity)
+        else 
+            SendFailure(m.From,"Transfer Failed...")
+        end
     end
 )
 -- Handler to view all transactions

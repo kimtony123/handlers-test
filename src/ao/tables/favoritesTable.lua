@@ -470,14 +470,11 @@ Handlers.add(
             -- Function to initialize a user's inbox if it doesn't exist
             
             -- Function to initialize a user's inbox if it doesn't exist
-             local function initializeUserInbox(userId)
-                InboxTableX[userId] = InboxTableX[userId] or {}
-                InboxTableX[userId].messages = InboxTableX[userId].messages or {}
-                InboxTableX[userId].UnreadMessages = InboxTableX[userId].UnreadMessages or 0
+    
+            InboxTableX[userId] = InboxTableX[userId] or {}
+            InboxTableX[userId].messages = InboxTableX[userId].messages or {}
+            InboxTableX[userId].UnreadMessages = InboxTableX[userId].UnreadMessages or 0
 
-             end
- 
-             initializeUserInbox(userId)
  
             local message =  {
                 appId = appId,
@@ -496,11 +493,11 @@ Handlers.add(
             InboxTableX[userId].UnreadMessages = InboxTableX[userId].UnreadMessages + 1
         end
 
-
+           
         SentBoxTable[sender] = SentBoxTable[sender] or {}
         SentBoxTable[sender].messages = SentBoxTable[sender].messages or {}
         SentBoxTable[sender].SentMessages = SentBoxTable[sender].SentMessages or 0
-
+      
         local message = {
                 appId = appId,
                 messageId = messageId,
